@@ -34,10 +34,8 @@ dependencies:
   - bioconda::vcftools=0.1.16
   - conda-forge::pigz=2.3.4 
   - conda-forge::r-ggplot2=3.3.0
-  - conda-forge::python=2.7.15
   - conda-forge::pip=10.0.1
-  - bioconda::deepvariant=0.7.0
+  - bioconda::deepvariant=0.10.0
   - bioconda::picard=2.18.7
-  - bioconda::htslib=1.9
   - conda-forge::lbzip2=2.5
-  - conda-forge::bzip2=1.0.6
+  - conda-forge::google-cloud-sdk<243.0.0
