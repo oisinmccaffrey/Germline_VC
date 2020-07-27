@@ -8,5 +8,7 @@ process echo{
     script:
     """
     samtools --version
+    
+    gatk --help
     """
 }
