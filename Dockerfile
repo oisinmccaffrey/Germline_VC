@@ -4,7 +4,7 @@ LABEL authors="Barry Digby" \
 
 # Install the conda environment
 COPY environment.yml /
-RUN conda env create -f /environment.yml && conda clean -a
+RUN conda env create -f /environment.yml python=2.7.15 && conda clean -a
 
 # Add conda installation dir to PATH (instead of doing 'conda activate')
 ENV PATH /opt/conda/envs/Germline_VC/bin:$PATH
