@@ -55,7 +55,7 @@ process BuildIntervals{
 
 	script:
 	"""
-	awk -v FS='\t' -v OFS='\t' '{ print \$1, \"0\", \$2 }' ${fastaFai} > ${fastaFai.baseName}.bed
+	awk -v FS='\t' -v OFS='\t' '{ print \$1, \"0\", \$2 }' ${fai} > ${fai.baseName}.bed
 	"""
 }
 
