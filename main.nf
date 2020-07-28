@@ -33,14 +33,12 @@ Channel
 ================================================================================
 */
 
-bwa_ch = params.index ? Channel.value(file(params.index))
-
 process MapReads{
         tag "${base}"
 
         input:
         tuple val(base), file(reads) from reads_ch
-        file(bwa_idx) from bwa_ch.collect()
+        path(idx) from params.index
         path(genome) from params.genome
         path(fai) from params.fai
 
