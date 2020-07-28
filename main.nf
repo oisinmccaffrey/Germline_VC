@@ -58,7 +58,7 @@ process MapReads{
         script:
         readGroup = "@RG\\tID:HT52VDMXX\\tPU:HT52VDMXX:1\\tSM:METIN\\tLB:METIN\\tPL:illumina"
         """
-        bwa mem -K 100000000 -R \"${readGroup}\" -t 4 -M $genome $reads | \
+        bwa mem -K 100000000 -R \"${readGroup}\" -t 4 -M $fasta $reads | \
         samtools sort --threads 4 - > ${base}.bam
         """
 }
