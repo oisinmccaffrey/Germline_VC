@@ -12,7 +12,7 @@ https://github.com/BarryDigby/Germline_VC
 --------------------------------------------------------------------------------
 @Usage
 nextflow -bg -q run BarryDigby/Germline_VC -profile standard, singularity \
---params.refDir /path/to/genome/files
+--refDir /path/to/genome/files
 --------------------------------------------------------------------------------
 */
 
