@@ -49,7 +49,7 @@ process MapReads{
 
         input:
         tuple val(base), file(reads) from reads_ch
-        tuple file(genome), file(fai), from Channel.value([params.genome, params.fai])
+        tuple file(fasta), file(fai), from Channel.value([params.fasta, params.fai])
         tuple file(amb), file(ann), file(bwt), file(pac), file(sa) from Channel.value([params.amb, params.ann, params.bwt, params.pac, params.sa])
         
         output:
