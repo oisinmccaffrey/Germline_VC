@@ -48,7 +48,7 @@ Channel
 process BuildIntervals{ 
 
 	input:
-	tuple file(fai) from Channel.value([params.fai])
+	file(fai) from Channel.value([params.fai])
 
 	output:
 	file("${fai.baseName}.bed") into intervalBuilt
