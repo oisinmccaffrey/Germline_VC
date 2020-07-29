@@ -45,39 +45,6 @@ Channel
 */
 
 
-process BuildIntervals{ 
-
-	input:
-	file(fai) from Channel.value([params.fai])
-
-	output:
-	file("${fai.baseName}.bed") into intervalBuilt
-
-	script:
-	"""
-	awk -v FS='\t' -v OFS='\t' '{ print \$1, \"0\", \$2 }' ${fai} > ${fai.baseName}.bed
-	"""
-}
-
-
-process CreateIntervalBeds{
-
-	input:
-	file(intervals) from intervalBuilt
-
-	output:
-	file('*.bed') into bedIntervals mode flatten
-
-	script:
-	"""
-	awk -vFS="[:-]" '{
-        name = sprintf("%s_%d-%d", \$1, \$2, \$3);
-        printf("%s\\t%d\\t%d\\n", \$1, \$2-1, \$3) > name ".bed"
-        }' ${intervals}
-	"""
-}
-
-
 process MapReads{
         
         input:
@@ -91,8 +58,8 @@ process MapReads{
         script:
         readGroup = "@RG\\tID:HT52VDMXX\\tPU:HT52VDMXX:1\\tSM:METIN\\tLB:METIN\\tPL:illumina"
         """
-        bwa mem -K 100000000 -R \"${readGroup}\" -t 4 -M $fasta $reads | \
-        samtools sort --threads 4 - > ${base}.bam
+        bwa mem -K 100000000 -R \"${readGroup}\" -t 8 -M $fasta $reads | \
+        samtools sort --threads 8 - > ${base}.bam
         """
 }
 
@@ -122,14 +89,11 @@ process MarkDuplicates{
 }
 
 
-bamBaseRecalibrator = bam_duplicates_marked.combine(bedIntervals)
-
-
 process BQSR{
 
 	input:
-	tuple val(base), file(bam), file(bai), file(intervalBed) from bamBaseRecalibrator
-	tuple file(fasta), file(fai), file(dict) from Channel.value([params.fasta, params.fai, params.dict])
+	tuple val(base), file(bam), file(bai) from bam_duplicates_marked
+	tuple file(fasta), file(fai), file(dict), file(intervals) from Channel.value([params.fasta, params.fai, params.dict, params.targets])
 	tuple file(dbsnp), file(dbsnp_idx), file(indels), file(indels_idx) from Channel.value([params.dbsnp, params.dbsnp_idx, params.indels, params.indels_idx])
 
 	output:
@@ -143,7 +107,7 @@ process BQSR{
 	-O ${base}.recal.table \
 	--tmp-dir . \
 	-R $fasta \
-	-L $intervalBed \
+	-L $intervals \
 	--known-sites $dbsnp \
 	--known-sites $indels
 
@@ -152,7 +116,7 @@ process BQSR{
 	-I $bam
 	-O ${base}.recal.bam \
 	-R $fasta \
-	-L $intervalBed \
+	-L $intervals \
 	--bqsr-recal-file ${base}.recal.table
 
 	samtools index ${base}.recal.bam ${base}.recal.bam.bai
