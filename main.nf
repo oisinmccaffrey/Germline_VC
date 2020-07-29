@@ -113,7 +113,7 @@ process BQSR{
 	input:
 	tuple val(base), file(bam), file(bai) from bam_duplicates_marked
 	tuple file(fasta), file(fai), file(dict), file(intlist) from Channel.value([params.fasta, params.fai, params.dict, params.intlist])
-	tuple file(dbsnp), file(dbsnptbi) from Channel.value([params.dbsnp, params.dbsnp_idx])
+	tuple file(dbsnp), file(dbsnptbi) from Channel.value([params.dbsnp, params.dbsnptbi])
 
 	output:
 	tuple val(base), file("${base}.recal.bam"), file("${base}.recal.bam.bai") into BQSR_bams
