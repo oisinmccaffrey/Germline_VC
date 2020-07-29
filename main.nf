@@ -16,27 +16,40 @@ nextflow -bg -q run BarryDigby/Germline_VC -profile standard, singularity \
 --------------------------------------------------------------------------------
 */
 
-params.fasta = Channel.fromPath("$params.refDir/*fa").getVal()
-params.fai = Channel.fromPath("$params.refDir/*fa.fai").getVal()
+params.fasta = Channel.fromPath("$params.refDir/*fasta").getVal()
+params.fai = Channel.fromPath("$params.refDir/*fasta.fai").getVal()
 params.dict = Channel.fromPath("$params.refDir/*dict").getVal()
 
-params.amb = Channel.fromPath("$params.refDir/*fa.amb").getVal()
-params.ann = Channel.fromPath("$params.refDir/*fa.ann").getVal()
-params.bwt = Channel.fromPath("$params.refDir/*fa.bwt").getVal()
-params.pac = Channel.fromPath("$params.refDir/*fa.pac").getVal()
-params.sa = Channel.fromPath("$params.refDir/*fa.sa").getVal()
+params.amb = Channel.fromPath("$params.refDir/*fasta.amb").getVal()
+params.ann = Channel.fromPath("$params.refDir/*fasta.ann").getVal()
+params.bwt = Channel.fromPath("$params.refDir/*fasta.bwt").getVal()
+params.pac = Channel.fromPath("$params.refDir/*fasta.pac").getVal()
+params.sa = Channel.fromPath("$params.refDir/*fasta.sa").getVal()
 
-params.targets = Channel.fromPath("$params.refDir/*exome.targets.bed").getVal()
-params.dbsnp = Channel.fromPath("$params.refDir/*dbSNP142_human_GRCh38.snps.vcf.gz").getVal()
-params.dbsnp_idx = Channel.fromPath("$params.refDir/*dbSNP142_human_GRCh38.snps.vcf.gz.tbi").getVal()
-params.indels = Channel.fromPath("$params.refDir/Mills_and_1000G_gold_standard.*.vcf.gz").getVal()
-params.indels_idx = Channel.fromPath("$params.refDir/Mills_and_1000G_gold_standard.*.vcf.gz.tbi").getVal()
+params.intlist = Channel.fromPath("$params.refDir/exome/*.bed.interval_list").getVal()
+params.bed = Channel.fromPath("$params.refDir/exome/*.bed").getVal()
+params.bedgz = Channel.fromPath("$params.refDir/exome/*.bed.gz").getVal()
+params.bedgztbi = Channel.fromPath("$params.refDir/exome/*.bed.gz.tbi").getVal()
+
+params.dbsnp = Channel.fromPath("$params.refDir/dbsnp*.gz").getVal()
+params.dbsnptbi = Channel.fromPath("$params.refDir/dbsnp*.tbi").getVal()
+
+params.omni = Channel.fromPath("$params.refDir/KG_omni*.gz").getVal()
+params.otbi = Channel.fromPath("$params.refDir/KG_omni*.gz.tbi").getVal()
+params.kgp1 = Channel.fromPath("$params.refDir/KG_phase1*.gz").getVal()
+params.ktbi = Channel.fromPath("$params.refDir/KG_phase1*.gz.tbi").getVal()
+params.hpmp = Channel.fromPath("$params.refDir/hapmap*.gz").getVal()
+params.htbi = Channel.fromPath("$params.refDir/hapmap*.gz.tbi").getVal()
+
+params.gps = Channel.fromPath("$params.refDir/exome/af-only-gnomad.*.vcf.gz").getVal()
+params.gpstbi = Channel.fromPath("$params.refDir/exome/af-only-gnomad.*.vcf.gz.tbi").getVal()
 
 params.reads = "/data/bdigby/WES/reads/*trim_R{1,2}.fastq.gz"
 Channel
         .fromFilePairs( params.reads )
         .set{ reads_ch }
 
+params.outDir = "analysis/exome"
 
 /*
 ================================================================================
@@ -47,6 +60,8 @@ Channel
 
 process MapReads{
         
+	publishDir path: "$params.outDir/bwa", mode: "copy"
+	
         input:
         tuple val(base), file(reads) from reads_ch
         tuple file(fasta), file(fai) from Channel.value([params.fasta, params.fai])
@@ -65,6 +80,8 @@ process MapReads{
 
 
 process MarkDuplicates{
+
+	publishDir path: "$params.outDir/mark_dups", mode: "copy"
 
 	input:
 	tuple val(base), file(bam) from bamMapped
@@ -91,10 +108,12 @@ process MarkDuplicates{
 
 process BQSR{
 
+	publishDir path: "$params.outDir/bqsr", mode: "copy"
+
 	input:
 	tuple val(base), file(bam), file(bai) from bam_duplicates_marked
-	tuple file(fasta), file(fai), file(dict), file(intervals) from Channel.value([params.fasta, params.fai, params.dict, params.targets])
-	tuple file(dbsnp), file(dbsnp_idx), file(indels), file(indels_idx) from Channel.value([params.dbsnp, params.dbsnp_idx, params.indels, params.indels_idx])
+	tuple file(fasta), file(fai), file(dict), file(intlist) from Channel.value([params.fasta, params.fai, params.dict, params.intlist])
+	tuple file(dbsnp), file(dbsnptbi) from Channel.value([params.dbsnp, params.dbsnp_idx])
 
 	output:
 	tuple val(base), file("${base}.recal.bam"), file("${base}.recal.bam.bai") into BQSR_bams
@@ -107,16 +126,17 @@ process BQSR{
 	-O ${base}.recal.table \
 	--tmp-dir . \
 	-R $fasta \
-	-L $intervals \
+	-L $intlist \
 	--known-sites $dbsnp \
-	--known-sites $indels
+	--disable-sequence-dictionary-validation true 
 
 	gatk --java-options -Xmx8g \
 	ApplyBQSR \
 	-I $bam
 	-O ${base}.recal.bam \
 	-R $fasta \
-	-L $intervals \
+	-L $intlist \
+	--use-original-qualities \
 	--bqsr-recal-file ${base}.recal.table
 
 	samtools index ${base}.recal.bam ${base}.recal.bam.bai
