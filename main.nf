@@ -170,7 +170,7 @@ process HaplotypeCaller {
         -R ${fasta} \
         -I ${bam} \
         -L $intlist \
-        --known-sites $dbsnp \
+        --D $dbsnp \
         -O ${base}.g.vcf \
         -ERC GVCF
 	"""
@@ -195,7 +195,7 @@ process GenotypeGVCFs {
         GenotypeGVCFs \
         -R ${fasta} \
         -L $intlist \
-        --known-sites $dbsnp \
+        --D $dbsnp \
         -V ${gvcf} \
         -O ${base}.vcf
 	"""
