@@ -123,7 +123,7 @@ process BQSR{
 	gatk --java-options -Xmx8g \
 	BaseRecalibrator \
 	-I $bam \
-	-O ${base}.recal.table \
+	--output ${base}.recal.table \
 	--tmp-dir . \
 	-R $fasta \
 	-L $intlist \
@@ -133,7 +133,7 @@ process BQSR{
 	gatk --java-options -Xmx8g \
 	ApplyBQSR \
 	-I $bam
-	-O ${base}.recal.bam \
+	--output ${base}.recal.bam \
 	-R $fasta \
 	-L $intlist \
 	--use-original-qualities \
