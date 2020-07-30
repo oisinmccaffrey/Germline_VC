@@ -132,7 +132,7 @@ process BQSR{
 
 	gatk --java-options -Xmx8g \
 	ApplyBQSR \
-	-I $bam
+	-I $bam \
 	--output ${base}.recal.bam \
 	-R $fasta \
 	-L $intlist \
