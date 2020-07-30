@@ -49,7 +49,7 @@ Channel
         .fromFilePairs( params.reads )
         .set{ reads_ch }
 
-params.outDir = "analysis/exome"
+params.outDir = ""
 
 /*
 ================================================================================
@@ -123,7 +123,7 @@ process BQSR{
 	gatk --java-options -Xmx8g \
 	BaseRecalibrator \
 	-I $bam \
-	--output ${base}.recal.table \
+	-O ${base}.recal.table \
 	--tmp-dir . \
 	-R $fasta \
 	-L $intlist \
@@ -133,13 +133,71 @@ process BQSR{
 	gatk --java-options -Xmx8g \
 	ApplyBQSR \
 	-I $bam \
-	--output ${base}.recal.bam \
+	-O ${base}.recal.bam \
 	-R $fasta \
 	-L $intlist \
 	--use-original-qualities true \
 	--bqsr-recal-file ${base}.recal.table
 
 	samtools index ${base}.recal.bam ${base}.recal.bam.bai
+	"""
+}
+
+
+/*
+================================================================================
+                            GERMLINE VARIANT CALLING
+================================================================================
+*/
+
+
+process HaplotypeCaller {
+
+	publishDir path: "$params.outDir/haplotypecaller", mode: "copy"
+	
+	input:
+	tuple val(base), file(bam), file(bai) from BQSR_bams
+	tuple file(fasta), file(fai), file(dict), file(intlist) from Channel.value([params.fasta, params.fai, params.dict, params.intlist])
+	tuple file(dbsnp), file(dbsnptbi) from Channel.value([params.dbsnp, params.dbsnptbi])
+	
+	output:
+	tuple val(base), file("${base}.g.vcf") into gvcfHaplotypeCaller
+	
+	script:
+	"""
+	gatk --java-options -Xmx8g \
+        HaplotypeCaller \
+        -R ${fasta} \
+        -I ${bam} \
+        -L $intlist \
+        --known-sites $dbsnp \
+        -O ${base}.g.vcf \
+        -ERC GVCF
+	"""
+}
+
+
+process GenotypeGVCFs {
+
+	publishDir path: "$params.outDir/genotypeGVCF", mode: "copy"
+	
+	input:
+	tuple val(base), file(gvcf) from gvcfHaplotypeCaller
+	tuple file(fasta), file(fai), file(dict), file(intlist) from Channel.value([params.fasta, params.fai, params.dict, params.intlist])
+	tuple file(dbsnp), file(dbsnptbi) from Channel.value([params.dbsnp, params.dbsnptbi])
+	
+	output:
+	tuple val(base), file("${base}.vcf") into vcfGenotypeGVCFs
+	
+	script:
+	"""
+	gatk --java-options -Xmx8g \
+        GenotypeGVCFs \
+        -R ${fasta} \
+        -L $intlist \
+        --known-sites $dbsnp \
+        -V ${gvcf} \
+        -O ${base}.vcf
 	"""
 }
 
