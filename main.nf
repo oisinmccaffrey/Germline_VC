@@ -60,7 +60,7 @@ params.outDir = ""
 
 process MapReads{
         
-	publishDir path: "$params.outDir/bwa", mode: "copy"
+	publishDir path: "$params.outDir/analysis/bwa", mode: "copy"
 	
         input:
         tuple val(base), file(reads) from reads_ch
@@ -81,7 +81,7 @@ process MapReads{
 
 process MarkDuplicates{
 
-	publishDir path: "$params.outDir/mark_dups", mode: "copy"
+	publishDir path: "$params.outDir/analysis/mark_dups", mode: "copy"
 
 	input:
 	tuple val(base), file(bam) from bamMapped
@@ -108,7 +108,7 @@ process MarkDuplicates{
 
 process BQSR{
 
-	publishDir path: "$params.outDir/bqsr", mode: "copy"
+	publishDir path: "$params.outDir/analysis/bqsr", mode: "copy"
 
 	input:
 	tuple val(base), file(bam), file(bai) from bam_duplicates_marked
@@ -153,7 +153,7 @@ process BQSR{
 
 process HaplotypeCaller {
 
-	publishDir path: "$params.outDir/haplotypecaller", mode: "copy"
+	publishDir path: "$params.outDir/analysis/haplotypecaller", mode: "copy"
 	
 	input:
 	tuple val(base), file(bam), file(bai) from BQSR_bams
@@ -179,7 +179,7 @@ process HaplotypeCaller {
 
 process GenotypeGVCFs {
 
-	publishDir path: "$params.outDir/genotypeGVCF", mode: "copy"
+	publishDir path: "$params.outDir/analysis/genotypeGVCF", mode: "copy"
 	
 	input:
 	tuple val(base), file(gvcf) from gvcfHaplotypeCaller
