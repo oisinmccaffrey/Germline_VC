@@ -192,6 +192,10 @@ process GenotypeGVCFs {
 	script:
 	"""
 	gatk --java-options -Xmx8g \
+	IndexFeatureFile \
+        -I ${gvcf}
+	
+	gatk --java-options -Xmx8g \
         GenotypeGVCFs \
         -R ${fasta} \
         -L $intlist \
