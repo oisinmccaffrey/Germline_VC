@@ -136,7 +136,7 @@ process BQSR{
 	--output ${base}.recal.bam \
 	-R $fasta \
 	-L $intlist \
-	--use-original-qualities \
+	--use-original-qualities true \
 	--bqsr-recal-file ${base}.recal.table
 
 	samtools index ${base}.recal.bam ${base}.recal.bam.bai
