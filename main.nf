@@ -36,15 +36,16 @@ params.dbsnptbi = Channel.fromPath("$params.refDir/dbsnp*.tbi").getVal()
 params.mills = Channel.fromPath("$params.refDir/Mills_KG*.gz").getVal()
 params.millstbi = Channel.fromPath("$params.refDir/Mills_KG*.gz.tbi").getVal()
 
-params.omni = Channel.fromPath("$params.refDir/KG_omni*.gz").getVal()
-params.otbi = Channel.fromPath("$params.refDir/KG_omni*.gz.tbi").getVal()
-params.kgp1 = Channel.fromPath("$params.refDir/KG_phase1*.gz").getVal()
-params.ktbi = Channel.fromPath("$params.refDir/KG_phase1*.gz.tbi").getVal()
-params.hpmp = Channel.fromPath("$params.refDir/hapmap*.gz").getVal()
-params.htbi = Channel.fromPath("$params.refDir/hapmap*.gz.tbi").getVal()
+// Not sure where to use these files, omit for now 
+//params.omni = Channel.fromPath("$params.refDir/KG_omni*.gz").getVal()
+//params.otbi = Channel.fromPath("$params.refDir/KG_omni*.gz.tbi").getVal()
+//params.kgp1 = Channel.fromPath("$params.refDir/KG_phase1*.gz").getVal()
+//params.ktbi = Channel.fromPath("$params.refDir/KG_phase1*.gz.tbi").getVal()
+//params.hpmp = Channel.fromPath("$params.refDir/hapmap*.gz").getVal()
+//params.htbi = Channel.fromPath("$params.refDir/hapmap*.gz.tbi").getVal()
 
-params.gps = Channel.fromPath("$params.refDir/exome/af-only-gnomad.*.vcf.gz").getVal()
-params.gpstbi = Channel.fromPath("$params.refDir/exome/af-only-gnomad.*.vcf.gz.tbi").getVal()
+//params.gps = Channel.fromPath("$params.refDir/exome/af-only-gnomad.*.vcf.gz").getVal()
+//params.gpstbi = Channel.fromPath("$params.refDir/exome/af-only-gnomad.*.vcf.gz.tbi").getVal()
 
 params.reads = "/data/bdigby/WES/reads/*trim_R{1,2}.fastq.gz"
 Channel
