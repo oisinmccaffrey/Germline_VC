@@ -255,7 +255,7 @@ process snpEff {
 	input:
 	tuple val(base), file(vcf) from vcfSnpEff
 	file(dataDir) from params.snpeffcache
-	val snpeffDB from params.snpeffversion
+	val(snpeffDB) from params.snpeffversion
 	
 	output:
 	tuple val(base), file("${base}_snpEff.genes.txt"), file("${base}_snpEff.html"), file("${base}_snpEff.csv") into snpeffReport
@@ -265,7 +265,7 @@ process snpEff {
 	cache = "-dataDir ${dataDir}"
 	"""
 	snpEff -Xmx8g \
-        ${snpeffDb} \
+        ${snpeffDB} \
         -csvStats ${base}_snpEff.csv \
         -nodownload \
         ${cache} \
@@ -310,25 +310,41 @@ process VEP {
         file("${base}_VEP.summary.html") into vepReport
 
 
-    script:
-    """
-    vep \
-    -i ${vcf} \
-    -o ${base}_VEP.ann.vcf \
-    --assembly GRCh37 \
-    --species homo_sapiens \
-    --cache \
-    --cache_version ${vepversion} \
-    --dir_cache ${dataDir} \
-    --everything \
-    --filter_common \
-    --fork 8 \
-    --format vcf \
-    --per_gene \
-    --stats_file ${base}_VEP.summary.html \
-    --total_length \
-    --vcf
-    """
+    	script:
+    	"""
+    	vep \
+    	-i ${vcf} \
+    	-o ${base}_VEP.ann.vcf \
+    	--assembly GRCh37 \
+    	--species homo_sapiens \
+    	--cache \
+    	--cache_version ${vepversion} \
+    	--dir_cache ${dataDir} \
+    	--everything \
+    	--filter_common \
+    	--fork 8 \
+    	--format vcf \
+    	--per_gene \
+    	--stats_file ${base}_VEP.summary.html \
+    	--total_length \
+    	--vcf
+    	"""
 }
 
-	
+
+process CompressVCFvep {
+
+    	publishDir path: "$params.outDir/analysis/VEP", mode: "copy"
+
+    	input:
+        tuple val(base), file(vcf) from vepVCF
+
+    	output:
+        tuple val(base), file("*.vcf.gz"), file("*.vcf.gz.tbi") into compressVCFOutVEP
+
+    	script:
+    	"""
+    	bgzip < ${vcf} > ${vcf}.gz
+    	tabix ${vcf}.gz
+    	"""
+}
