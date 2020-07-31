@@ -33,6 +33,8 @@ params.bedgztbi = Channel.fromPath("$params.refDir/exome/*.bed.gz.tbi").getVal()
 
 params.dbsnp = Channel.fromPath("$params.refDir/dbsnp*.gz").getVal()
 params.dbsnptbi = Channel.fromPath("$params.refDir/dbsnp*.tbi").getVal()
+params.mills = Channel.fromPath("$params.refDir/Mills_KG*.gz").getVal()
+params.milltbi = Channel.fromPath("${params.refDir/Mills_KG*.gz.tbi").getVal()
 
 params.omni = Channel.fromPath("$params.refDir/KG_omni*.gz").getVal()
 params.otbi = Channel.fromPath("$params.refDir/KG_omni*.gz.tbi").getVal()
@@ -114,6 +116,7 @@ process BQSR{
 	tuple val(base), file(bam), file(bai) from bam_duplicates_marked
 	tuple file(fasta), file(fai), file(dict), file(intlist) from Channel.value([params.fasta, params.fai, params.dict, params.intlist])
 	tuple file(dbsnp), file(dbsnptbi) from Channel.value([params.dbsnp, params.dbsnptbi])
+	tuple file(mills), file(millstbi) from Channel.value([params.mills, params.mills.tbi])
 
 	output:
 	tuple val(base), file("${base}.recal.bam"), file("${base}.recal.bam.bai") into BQSR_bams
@@ -128,7 +131,7 @@ process BQSR{
 	-R $fasta \
 	-L $intlist \
 	--known-sites $dbsnp \
-	--disable-sequence-dictionary-validation true 
+	--known-sites $mills \ 
 
 	gatk --java-options -Xmx8g \
 	ApplyBQSR \
@@ -136,7 +139,6 @@ process BQSR{
 	-O ${base}.recal.bam \
 	-R $fasta \
 	-L $intlist \
-	--use-original-qualities true \
 	--bqsr-recal-file ${base}.recal.table
 
 	samtools index ${base}.recal.bam ${base}.recal.bam.bai
