@@ -34,7 +34,7 @@ params.bedgztbi = Channel.fromPath("$params.refDir/exome/*.bed.gz.tbi").getVal()
 params.dbsnp = Channel.fromPath("$params.refDir/dbsnp*.gz").getVal()
 params.dbsnptbi = Channel.fromPath("$params.refDir/dbsnp*.tbi").getVal()
 params.mills = Channel.fromPath("$params.refDir/Mills_KG*.gz").getVal()
-params.milltbi = Channel.fromPath("$params.refDir/Mills_KG*.gz.tbi").getVal()
+params.millstbi = Channel.fromPath("$params.refDir/Mills_KG*.gz.tbi").getVal()
 
 params.omni = Channel.fromPath("$params.refDir/KG_omni*.gz").getVal()
 params.otbi = Channel.fromPath("$params.refDir/KG_omni*.gz.tbi").getVal()
