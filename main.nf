@@ -16,6 +16,10 @@ nextflow -bg -q run BarryDigby/Germline_VC -profile standard, singularity \
 --------------------------------------------------------------------------------
 */
 
+/*
+ Reference Files
+*/
+
 params.fasta = Channel.fromPath("$params.refDir/*fasta").getVal()
 params.fai = Channel.fromPath("$params.refDir/*fasta.fai").getVal()
 params.dict = Channel.fromPath("$params.refDir/*dict").getVal()
@@ -26,15 +30,32 @@ params.bwt = Channel.fromPath("$params.refDir/*fasta.bwt").getVal()
 params.pac = Channel.fromPath("$params.refDir/*fasta.pac").getVal()
 params.sa = Channel.fromPath("$params.refDir/*fasta.sa").getVal()
 
+/*
+ Exome Intervals, files
+*/
+
 params.intlist = Channel.fromPath("$params.refDir/exome/*.bed.interval_list").getVal()
 params.bed = Channel.fromPath("$params.refDir/exome/*.bed").getVal()
 params.bedgz = Channel.fromPath("$params.refDir/exome/*.bed.gz").getVal()
 params.bedgztbi = Channel.fromPath("$params.refDir/exome/*.bed.gz.tbi").getVal()
 
+/*
+ dbSNP, known Indels
+*/
+
 params.dbsnp = Channel.fromPath("$params.refDir/dbsnp*.gz").getVal()
 params.dbsnptbi = Channel.fromPath("$params.refDir/dbsnp*.tbi").getVal()
 params.mills = Channel.fromPath("$params.refDir/Mills_KG*.gz").getVal()
 params.millstbi = Channel.fromPath("$params.refDir/Mills_KG*.gz.tbi").getVal()
+
+/*
+ Annotation cache, database versions
+*/
+
+params.vepcache = Channel.fromPath("/data/VEP/GRCh37/homo_sapiens/99_GRCh37/*").getVal()
+params.vepversion = "99"
+params.snpeffcache = Channel.fromPath("/data/snpEff/GRCh37/data/GRCh37.87/*").getVal()
+params.snpeffversion = "GRCh37.7"
 
 // Not sure where to use these files, omit for now 
 //params.omni = Channel.fromPath("$params.refDir/KG_omni*.gz").getVal()
@@ -47,10 +68,18 @@ params.millstbi = Channel.fromPath("$params.refDir/Mills_KG*.gz.tbi").getVal()
 //params.gps = Channel.fromPath("$params.refDir/exome/af-only-gnomad.*.vcf.gz").getVal()
 //params.gpstbi = Channel.fromPath("$params.refDir/exome/af-only-gnomad.*.vcf.gz.tbi").getVal()
 
+/*
+ FASTQ reads
+*/
+
 params.reads = "/data/bdigby/WES/reads/*trim_R{1,2}.fastq.gz"
 Channel
         .fromFilePairs( params.reads )
         .set{ reads_ch }
+
+/*
+ Initialise outDir
+*/
 
 params.outDir = ""
 
@@ -208,3 +237,98 @@ process GenotypeGVCFs {
 	"""
 }
 
+
+/*
+================================================================================
+                                 ANNOTATION
+================================================================================
+*/
+
+
+(vcfSnpEff, vcfVEP) = vcfGenotypeGVCFs.into(2)
+
+
+process snpEff {
+
+	publishDir path: "$params.outDir/analysis/snpEff", mode: "copy"
+	
+	input:
+	tuple val(base), file(vcf) from vcfSnpEff
+	file(dataDir) from params.snpeffcache
+	val snpeffDB from params.snpeffversion
+	
+	output:
+	tuple val(base), file("${base}_snpEff.genes.txt"), file("${base}_snpEff.html"), file("${base}_snpEff.csv") into snpeffReport
+        tuple val(base), file("${base}_snpEff.ann.vcf") into snpeffVCF
+	
+	script:
+	cache = "-dataDir ${dataDir}"
+	"""
+	snpEff -Xmx8g \
+        ${snpeffDb} \
+        -csvStats ${base}_snpEff.csv \
+        -nodownload \
+        ${cache} \
+        -canon \
+        -v \
+        ${vcf} \
+        > ${base}_snpEff.ann.vcf
+    
+    	mv snpEff_summary.html ${base}_snpEff.html
+	"""
+}
+
+
+process CompressVCFsnpEff {
+
+    	publishDir path: "$params.outDir/analysis/snpEff", mode: "copy"
+
+    	input:
+        tuple val(base), file(vcf) from snpeffVCF
+
+    	output:
+        tuple val(base), file("*.vcf.gz"), file("*.vcf.gz.tbi") into compressVCFsnpEffOut
+
+    	script:
+    	"""
+    	bgzip < ${vcf} > ${vcf}.gz
+    	tabix ${vcf}.gz
+    	"""
+}
+
+process VEP {
+
+    	publishDir path: "$params.outDir/analysis/VEP", mode: "copy"
+
+    	input:
+        tuple val(base), file(vcf), file(idx) from vcfVEP
+        file(dataDir) from params.vepcache
+        val(vepversion) from params.vepversion
+
+    	output:
+        tuple val(base), file("${base}_VEP.ann.vcf") into vepVCF
+        file("${base}_VEP.summary.html") into vepReport
+
+
+    script:
+    """
+    vep \
+    -i ${vcf} \
+    -o ${base}_VEP.ann.vcf \
+    --assembly GRCh37 \
+    --species homo_sapiens \
+    --cache \
+    --cache_version ${vepversion} \
+    --dir_cache ${dataDir} \
+    --everything \
+    --filter_common \
+    --fork 8 \
+    --format vcf \
+    --per_gene \
+    --stats_file ${base}_VEP.summary.html \
+    --total_length \
+    --vcf
+    """
+}
+
+	
