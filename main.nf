@@ -248,60 +248,60 @@ process GenotypeGVCFs {
 (vcfSnpEff, vcfVEP) = vcfGenotypeGVCFs.into(2)
 
 
-process snpEff {
+//process snpEff {
+//
+//	publishDir path: "$params.outDir/analysis/snpEff", mode: "copy"
+//	
+//	input:
+//	tuple val(base), file(vcf) from vcfSnpEff
+//	file(dataDir) from params.snpeffcache
+//	val(snpeffDB) from params.snpeffversion
+//	
+//	output:
+//	tuple val(base), file("${base}_snpEff.genes.txt"), file("${base}_snpEff.html"), file("${base}_snpEff.csv") into snpeffReport
+  //      tuple val(base), file("${base}_snpEff.ann.vcf") into snpeffVCF
+//	
+//	script:
+//	cache = "-dataDir ${dataDir}"
+//	"""
+//	snpEff -Xmx8g \
+       // ${snpeffDB} \
+      //  -csvStats ${base}_snpEff.csv \
+     //   -nodownload \
+    //    ${cache} \
+    //    -canon \
+      //  -v \
+    //    ${vcf} \
+  //      > ${base}_snpEff.ann.vcf
+    //
+  //  	mv snpEff_summary.html ${base}_snpEff.html
+//	"""
+//}
 
-	publishDir path: "$params.outDir/analysis/snpEff", mode: "copy"
-	
-	input:
-	tuple val(base), file(vcf) from vcfSnpEff
-	file(dataDir) from params.snpeffcache
-	val(snpeffDB) from params.snpeffversion
-	
-	output:
-	tuple val(base), file("${base}_snpEff.genes.txt"), file("${base}_snpEff.html"), file("${base}_snpEff.csv") into snpeffReport
-        tuple val(base), file("${base}_snpEff.ann.vcf") into snpeffVCF
-	
-	script:
-	cache = "-dataDir ${dataDir}"
-	"""
-	snpEff -Xmx8g \
-        ${snpeffDB} \
-        -csvStats ${base}_snpEff.csv \
-        -nodownload \
-        ${cache} \
-        -canon \
-        -v \
-        ${vcf} \
-        > ${base}_snpEff.ann.vcf
-    
-    	mv snpEff_summary.html ${base}_snpEff.html
-	"""
-}
 
-
-process CompressVCFsnpEff {
-
-    	publishDir path: "$params.outDir/analysis/snpEff", mode: "copy"
-
-    	input:
-        tuple val(base), file(vcf) from snpeffVCF
-
-    	output:
-        tuple val(base), file("*.vcf.gz"), file("*.vcf.gz.tbi") into compressVCFsnpEffOut
-
-    	script:
-    	"""
-    	bgzip < ${vcf} > ${vcf}.gz
-    	tabix ${vcf}.gz
-    	"""
-}
+//process CompressVCFsnpEff {
+//
+ //   	publishDir path: "$params.outDir/analysis/snpEff", mode: "copy"
+//
+ //   	input:
+ //       tuple val(base), file(vcf) from snpeffVCF
+//
+ //   	output:
+ //       tuple val(base), file("*.vcf.gz"), file("*.vcf.gz.tbi") into compressVCFsnpEffOut
+//
+ //   	script:
+ //   	"""
+//    	bgzip < ${vcf} > ${vcf}.gz
+//    	tabix ${vcf}.gz
+ //   	"""
+//}
 
 process VEP {
 
     	publishDir path: "$params.outDir/analysis/VEP", mode: "copy"
 
     	input:
-        tuple val(base), file(vcf), file(idx) from vcfVEP
+        tuple val(base), file(vcf) from vcfVEP
         file(dataDir) from params.vepcache
         val(vepversion) from params.vepversion
 
