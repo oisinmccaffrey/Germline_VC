@@ -317,6 +317,7 @@ process VEP {
     	-o ${base}_VEP.ann.vcf \
     	--assembly GRCh37 \
     	--species homo_sapiens \
+	--offline \
     	--cache \
     	--cache_version ${vepversion} \
     	--dir_cache ${dataDir} \
