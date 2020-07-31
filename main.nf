@@ -52,7 +52,7 @@ params.millstbi = Channel.fromPath("$params.refDir/Mills_KG*.gz.tbi").getVal()
  Annotation cache, database versions
 */
 
-params.vepcache = Channel.fromPath("/data/VEP/GRCh37/homo_sapiens/99_GRCh37/*").getVal()
+params.vepcache = "/data/VEP/GRCh37/"
 params.vepversion = "99"
 params.snpeffcache = Channel.fromPath("/data/snpEff/GRCh37/data/GRCh37.87/*").getVal()
 params.snpeffversion = "GRCh37.87"
@@ -302,8 +302,9 @@ process VEP {
 
     	input:
         tuple val(base), file(vcf) from vcfVEP
-        file(dataDir) from params.vepcache
+        val(dataDir) from params.vepcache
         val(vepversion) from params.vepversion
+	file(fasta) from params.fasta
 
     	output:
         tuple val(base), file("${base}_VEP.ann.vcf") into vepVCF
@@ -319,6 +320,7 @@ process VEP {
     	--species homo_sapiens \
 	--offline \
     	--cache \
+	--fasta $fasta \
     	--cache_version ${vepversion} \
     	--dir_cache ${dataDir} \
     	--everything \
