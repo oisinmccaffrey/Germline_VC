@@ -131,7 +131,7 @@ process BQSR{
 	-R $fasta \
 	-L $intlist \
 	--known-sites $dbsnp \
-	--known-sites $mills \ 
+	--known-sites $mills 
 
 	gatk --java-options -Xmx8g \
 	ApplyBQSR \
