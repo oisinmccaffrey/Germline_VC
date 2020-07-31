@@ -55,7 +55,7 @@ params.millstbi = Channel.fromPath("$params.refDir/Mills_KG*.gz.tbi").getVal()
 params.vepcache = Channel.fromPath("/data/VEP/GRCh37/homo_sapiens/99_GRCh37/*").getVal()
 params.vepversion = "99"
 params.snpeffcache = Channel.fromPath("/data/snpEff/GRCh37/data/GRCh37.87/*").getVal()
-params.snpeffversion = "GRCh37.7"
+params.snpeffversion = "GRCh37.87"
 
 // Not sure where to use these files, omit for now 
 //params.omni = Channel.fromPath("$params.refDir/KG_omni*.gz").getVal()
