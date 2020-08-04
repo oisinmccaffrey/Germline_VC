@@ -3,7 +3,7 @@ Germline Variant Calling (Single Sample)
 ***
 Single sample Germline Variant Calling analysis (Galway Genomics July 2019). 
 
-Analysis Strategy:
+VC tools in the box:
 
 * GATK
 * FreeBayes
@@ -11,3 +11,5 @@ Analysis Strategy:
 * TIDDIT
 * Manta 
 * Google DeepVariant
+
+Currently only using GATK for analysis. 
