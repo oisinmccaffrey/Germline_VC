@@ -52,7 +52,7 @@ params.millstbi = Channel.fromPath("$params.refDir/Mills_KG*.gz.tbi").getVal()
  Annotation cache, database versions
 */
 
-params.vepcache = "/data/VEP/GRCh37/"
+params.vepcache = "/data/VEP/GRCh37"
 params.vepversion = "99"
 params.snpeffcache = Channel.fromPath("/data/snpEff/GRCh37/data/GRCh37.87/*").getVal()
 params.snpeffversion = "GRCh37.87"
@@ -325,7 +325,7 @@ process VEP {
     	--dir_cache ${dataDir} \
     	--everything \
     	--filter_common \
-    	--fork 8 \
+    	--fork 4 \
     	--format vcf \
     	--per_gene \
     	--stats_file ${base}_VEP.summary.html \
