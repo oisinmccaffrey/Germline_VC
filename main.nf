@@ -54,10 +54,10 @@ params.millstbi = Channel.fromPath("$params.refDir/Mills_KG*.gz.tbi").getVal()
 
 params.vepcache = "/data/VEP/GRCh37"
 params.vepversion = "99"
-params.cadd_wg_snvs = Channel.fromPath("/data/VEP/GRCh37/Plugin_files/whole_genome_SNVs_inclAnno.tsv.gz").getVal()
-params.cadd_wg_snvs_tbi = Channel.fromPath("/data/VEP/GRCh37/Plugin_files/whole_genome_SNVs_inclAnno.tsv.gz.tbi").getVal()
-params.cadd_indels = Channel.fromPath("/data/VEP/GRCh37/Plugin_files/InDels_inclAnno.tsv.gz").getVal()
-params.cadd_indels_tbi = Channel.fromPath("/data/VEP/GRCh37/Plugin_files/InDels_inclAnno.tsv.gz.tbi").getVal()
+params.cadd_wg_snvs = Channel.fromPath("/data/VEP/GRCh37/Plugin_files/whole_genome_SNVs.tsv.gz").getVal()
+params.cadd_wg_snvs_tbi = Channel.fromPath("/data/VEP/GRCh37/Plugin_files/whole_genome_SNVs.tsv.gz.tbi").getVal()
+params.cadd_indels = Channel.fromPath("/data/VEP/GRCh37/Plugin_files/InDels.tsv.gz").getVal()
+params.cadd_indels_tbi = Channel.fromPath("/data/VEP/GRCh37/Plugin_files/InDels.tsv.gz.tbi").getVal()
 
 // Not sure where to use these files, omit for now 
 //params.omni = Channel.fromPath("$params.refDir/KG_omni*.gz").getVal()
@@ -311,7 +311,7 @@ process VEP {
 
     	script:
 	reducedVCF = reduceVCF(vcf.fileName)
-	CADD = "--plugin CADD,whole_genome_SNVs_inclAnno.tsv.gz,InDels_inclAnno.tsv.gz"
+	CADD = "--plugin CADD,whole_genome_SNVs.tsv.gz,InDels.tsv.gz"
 	LOF = "--plugin LoFtool,/data/VEP/VEP_plugins/LoFtool_scores.txt"
 	genesplicer = "--plugin GeneSplicer,/opt/conda/envs/Germline_VC/bin/genesplicer,/opt/conda/envs/Germline_VC/share/genesplicer-1.0-1/human,context=200,tmpdir=\$PWD/${reducedVCF}"
     	"""
