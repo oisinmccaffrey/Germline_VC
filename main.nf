@@ -54,8 +54,10 @@ params.millstbi = Channel.fromPath("$params.refDir/Mills_KG*.gz.tbi").getVal()
 
 params.vepcache = "/data/VEP/GRCh37"
 params.vepversion = "99"
-params.snpeffcache = Channel.fromPath("/data/snpEff/GRCh37/data/GRCh37.87/*").getVal()
-params.snpeffversion = "GRCh37.87"
+params.cadd_wg_snvs = Channel.fromPath("/data/VEP/GRCh37/Plugin_files/whole_genome_SNVs_inclAnno.tsv.gz").getVal()
+params.cadd_wg_snvs_tbi = Channel.fromPath("/data/VEP/GRCh37/Plugin_files/whole_genome_SNVs_inclAnno.tsv.gz.tbi").getVal()
+params.cadd_indels = Channel.fromPath("/data/VEP/GRCh37/Plugin_files/InDels_inclAnno.tsv.gz").getVal()
+params.cadd_indels_tbi = Channel.fromPath("/data/VEP/GRCh37/Plugin_files/InDels_inclAnno.tsv.gz.tbi").getVal()
 
 // Not sure where to use these files, omit for now 
 //params.omni = Channel.fromPath("$params.refDir/KG_omni*.gz").getVal()
@@ -238,6 +240,49 @@ process GenotypeGVCFs {
 }
 
 
+(filter_snps, filter_indels, vcfVEP) = vcfGenotypeGVCFs.into(2)
+
+
+process Filter_SNPs {
+	
+	publishDir path: "$params.outDir/analysis/SNPs", mode: "copy"
+	
+	input:
+	tuple val(base), file(vcf) from filter_snps
+	
+	output:
+	tuple val(base), file('*.snps.vcf.gz') into snps_filtered
+	
+	script:
+	"""
+	gatk SelectVariants \
+    	-V $vcf \
+    	-select-type SNP \
+    	-O ${base}.snps.vcf.gz
+	"""
+}
+
+
+process Filter_Indels {
+
+	publishDir path: "$params.outDir/analysis/Indels", mode: "copy"
+	
+	input:
+	tuple val(base), file(vcf) from filter_indels
+	
+	output:
+	tuple val(base), file('*.indels.vcf.gz') into snps_filtered
+	
+	script:
+	"""
+	gatk SelectVariants \
+    	-V $vcf \
+    	-select-type INDEL \
+    	-O ${base}.indels.vcf.gz
+	"""
+}
+
+
 /*
 ================================================================================
                                  ANNOTATION
@@ -245,56 +290,7 @@ process GenotypeGVCFs {
 */
 
 
-(vcfSnpEff, vcfVEP) = vcfGenotypeGVCFs.into(2)
 
-
-//process snpEff {
-//
-//	publishDir path: "$params.outDir/analysis/snpEff", mode: "copy"
-//	
-//	input:
-//	tuple val(base), file(vcf) from vcfSnpEff
-//	file(dataDir) from params.snpeffcache
-//	val(snpeffDB) from params.snpeffversion
-//	
-//	output:
-//	tuple val(base), file("${base}_snpEff.genes.txt"), file("${base}_snpEff.html"), file("${base}_snpEff.csv") into snpeffReport
-  //      tuple val(base), file("${base}_snpEff.ann.vcf") into snpeffVCF
-//	
-//	script:
-//	cache = "-dataDir ${dataDir}"
-//	"""
-//	snpEff -Xmx8g \
-       // ${snpeffDB} \
-      //  -csvStats ${base}_snpEff.csv \
-     //   -nodownload \
-    //    ${cache} \
-    //    -canon \
-      //  -v \
-    //    ${vcf} \
-  //      > ${base}_snpEff.ann.vcf
-    //
-  //  	mv snpEff_summary.html ${base}_snpEff.html
-//	"""
-//}
-
-
-//process CompressVCFsnpEff {
-//
- //   	publishDir path: "$params.outDir/analysis/snpEff", mode: "copy"
-//
- //   	input:
- //       tuple val(base), file(vcf) from snpeffVCF
-//
- //   	output:
- //       tuple val(base), file("*.vcf.gz"), file("*.vcf.gz.tbi") into compressVCFsnpEffOut
-//
- //   	script:
- //   	"""
-//    	bgzip < ${vcf} > ${vcf}.gz
-//    	tabix ${vcf}.gz
- //   	"""
-//}
 
 process VEP {
 
@@ -305,19 +301,28 @@ process VEP {
         val(dataDir) from params.vepcache
         val(vepversion) from params.vepversion
 	file(fasta) from params.fasta
-
+	tuple file(cadd_snv), file(cadd_snv_tbi) from Channel.value([params.cadd_wg_snvs, params.cadd_wg_snvs_tbi])
+	tuple file(cadd_indels), file(cadd_indels_tbi) from Channel.value([params.cadd_indels, params.cadd_indels_tbi])
+	
     	output:
         tuple val(base), file("${base}_VEP.ann.vcf") into vepVCF
         file("${base}_VEP.summary.html") into vepReport
 
 
     	script:
+	reducedVCF = reduceVCF(vcf.fileName)
+	CADD = "--plugin CADD,whole_genome_SNVs_inclAnno.tsv.gz,InDels_inclAnno.tsv.gz"
+	LOF = "--plugin LoFtool,/data/VEP/VEP_plugins/LoFtool_scores.txt"
+	genesplicer = "--plugin GeneSplicer,/opt/conda/envs/Germline_VC/bin/genesplicer,/opt/conda/envs/Germline_VC/share/genesplicer-1.0-1/human,context=200,tmpdir=\$PWD/${reducedVCF}"
     	"""
     	vep \
     	-i ${vcf} \
     	-o ${base}_VEP.ann.vcf \
     	--assembly GRCh37 \
     	--species homo_sapiens \
+	${CADD} \
+	${LOF} \
+	${genesplicer} \
 	--offline \
     	--cache \
 	--fasta $fasta \
