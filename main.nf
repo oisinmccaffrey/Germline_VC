@@ -241,7 +241,7 @@ process GenotypeGVCFs {
 }
 
 
-(filter_snps, filter_indels, vcfVEP) = vcfGenotypeGVCFs.into(2)
+(filter_snps, filter_indels, vcfVEP) = vcfGenotypeGVCFs.into(3)
 
 
 process Filter_SNPs {
