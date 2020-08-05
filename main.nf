@@ -312,10 +312,9 @@ process VEP {
 
 
     	script:
-	reducedVCF = reduceVCF(vcf.fileName)
 	CADD = "--plugin CADD,whole_genome_SNVs.tsv.gz,InDels.tsv.gz"
 	LOF = "--plugin LoFtool,LoFtool_scores.txt"
-	genesplicer = "--plugin GeneSplicer,/opt/conda/envs/Germline_VC/bin/genesplicer,/opt/conda/envs/Germline_VC/share/genesplicer-1.0-1/human,context=200,tmpdir=\$PWD/${reducedVCF}"
+	genesplicer = "--plugin GeneSplicer,/opt/conda/envs/Germline_VC/bin/genesplicer,/opt/conda/envs/Germline_VC/share/genesplicer-1.0-1/human,context=200,tmpdir=\$PWD/${base}"
     	"""
     	vep \
     	-i ${vcf} \
