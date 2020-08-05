@@ -52,13 +52,16 @@ params.millstbi = Channel.fromPath("$params.refDir/Mills_KG*.gz.tbi").getVal()
  Annotation cache, database versions
 */
 
-params.vepcache = "/data/VEP/GRCh37"
-params.vepversion = "99"
+params.vep_cache = "/data/VEP/GRCh37"
+params.vep_version = "99"
 params.cadd_wg_snvs = Channel.fromPath("/data/VEP/GRCh37/Plugin_files/whole_genome_SNVs.tsv.gz").getVal()
 params.cadd_wg_snvs_tbi = Channel.fromPath("/data/VEP/GRCh37/Plugin_files/whole_genome_SNVs.tsv.gz.tbi").getVal()
 params.cadd_indels = Channel.fromPath("/data/VEP/GRCh37/Plugin_files/InDels.tsv.gz").getVal()
 params.cadd_indels_tbi = Channel.fromPath("/data/VEP/GRCh37/Plugin_files/InDels.tsv.gz.tbi").getVal()
 params.lof = Channel.fromPath("/data/VEP/VEP_plugins/LoFtool_scores.txt").getVal()
+
+params.snpeff_cache = "/data/snpEff"
+params.snpeff_db = "GRCh37.75"
 
 // Not sure where to use these files, omit for now 
 //params.omni = Channel.fromPath("$params.refDir/KG_omni*.gz").getVal()
@@ -241,7 +244,7 @@ process GenotypeGVCFs {
 }
 
 
-(filter_snps, filter_indels, vcfVEP) = vcfGenotypeGVCFs.into(3)
+(filter_snps, filter_indels, vcfVEP, vcfsnpEff) = vcfGenotypeGVCFs.into(4)
 
 
 process Filter_SNPs {
@@ -287,10 +290,60 @@ process Filter_Indels {
 /*
 ================================================================================
                                  ANNOTATION
+			  Run snpEff | index output
+		       Run VEP | Run VEP on snpEff VCF
+			   index both VEP outputs
 ================================================================================
 */
 
 
+process snpEff {
+
+	publishDir path: "$params.outDir/analysis/snpEff", mode: "copy"
+	
+	input:
+	tuple val(base), file(vcf) from vcfsnpEff
+	val(cache) from params.snpeff_cache
+	val(database) from params.snpeff_db
+	
+	output:
+	tuple val(base), file("${base}_snpEff.genes.txt"), file("${base}_snpEff.html"), file("${base}_snpEff.csv") into snpeffReport
+        tuple val(base), file("${base}_snpEff.ann.vcf") into snpeffVCF
+
+	script:
+	cache = "-dataDir ${cache}"
+	"""
+	snpEff -Xmx8g \
+        ${database} \
+        -csvStats ${base}_snpEff.csv \
+        -nodownload \
+        ${cache} \
+        -canon \
+        -v \
+        ${vcf} \
+        > ${base}_snpEff.ann.vcf
+	
+    	mv snpEff_summary.html ${base}_snpEff.html
+	"""
+}
+
+
+process CompressVCFsnpEff {
+
+    publishDir path: "$params.outDir/analysis/snpEff", mode: "copy"
+
+    input:
+    tuple val(base), file(vcf) from snpeffVCF
+
+    output:
+    tuple val(base), file("*.vcf.gz"), file("*.vcf.gz.tbi") into compressVCFsnpEffOut
+
+    script:
+    """
+    bgzip < ${vcf} > ${vcf}.gz
+    tabix ${vcf}.gz
+    """
+}
 
 
 process VEP {
@@ -299,8 +352,8 @@ process VEP {
 
     	input:
         tuple val(base), file(vcf) from vcfVEP
-        val(dataDir) from params.vepcache
-        val(vepversion) from params.vepversion
+        val(dataDir) from params.vep_cache
+        val(vepversion) from params.vep_version
 	file(fasta) from params.fasta
 	tuple file(cadd_snv), file(cadd_snv_tbi) from Channel.value([params.cadd_wg_snvs, params.cadd_wg_snvs_tbi])
 	tuple file(cadd_indels), file(cadd_indels_tbi) from Channel.value([params.cadd_indels, params.cadd_indels_tbi])
@@ -337,23 +390,80 @@ process VEP {
     	--stats_file ${base}_VEP.summary.html \
     	--total_length \
     	--vcf
+	
+	rm -rf ${base}
     	"""
 }
 
 
-process CompressVCFvep {
 
-    	publishDir path: "$params.outDir/analysis/VEP", mode: "copy"
+process VEPsnpEff {
+
+    	publishDir path: "$params.outDir/analysis/snpEff", mode: "copy"
 
     	input:
-        tuple val(base), file(vcf) from vepVCF
-
+        tuple val(base), file(vcf) from compressVCFsnpEffOut
+        val(dataDir) from params.vep_cache
+        val(vepversion) from params.vep_version
+	file(fasta) from params.fasta
+	tuple file(cadd_snv), file(cadd_snv_tbi) from Channel.value([params.cadd_wg_snvs, params.cadd_wg_snvs_tbi])
+	tuple file(cadd_indels), file(cadd_indels_tbi) from Channel.value([params.cadd_indels, params.cadd_indels_tbi])
+	file(lof) from params.lof
+	
     	output:
-        tuple val(base), file("*.vcf.gz"), file("*.vcf.gz.tbi") into compressVCFOutVEP
+        tuple val(base), file("${base}_VEP.ann.vcf") into vepVCFmerge
+        file("${base}_VEP.summary.html") into vepReportMerge
+
 
     	script:
+	CADD = "--plugin CADD,whole_genome_SNVs.tsv.gz,InDels.tsv.gz"
+	LOF = "--plugin LoFtool,LoFtool_scores.txt"
+	genesplicer = "--plugin GeneSplicer,/opt/conda/envs/Germline_VC/bin/genesplicer,/opt/conda/envs/Germline_VC/share/genesplicer-1.0-1/human,context=200,tmpdir=\$PWD/${base}"
     	"""
-    	bgzip < ${vcf} > ${vcf}.gz
-    	tabix ${vcf}.gz
+    	vep \
+    	-i ${vcf} \
+    	-o ${base}_VEP.ann.vcf \
+    	--assembly GRCh37 \
+    	--species homo_sapiens \
+	${CADD} \
+	${LOF} \
+	${genesplicer} \
+	--offline \
+    	--cache \
+	--fasta $fasta \
+    	--cache_version ${vepversion} \
+    	--dir_cache ${dataDir} \
+    	--everything \
+    	--filter_common \
+    	--fork 4 \
+    	--format vcf \
+    	--per_gene \
+    	--stats_file ${base}_VEP.summary.html \
+    	--total_length \
+    	--vcf
+	
+	rm -rf ${base}
     	"""
+}
+
+
+
+vcfCompressVCFvep = vepVCF.mix(vepVCFmerge)
+
+
+process CompressVCFvep {
+
+    publishDir path: "$params.outDir/analysis/combined_annot", mode: "copy"
+
+    input:
+    tuple val(base), file(vcf) from vcfCompressVCFvep
+
+    output:
+    tuple val(base), file("*.vcf.gz"), file("*.vcf.gz.tbi") into compressVCFOutVEP
+
+    script:
+    """
+    bgzip < ${vcf} > ${vcf}.gz
+    tabix ${vcf}.gz
+    """
 }
