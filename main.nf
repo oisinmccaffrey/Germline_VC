@@ -58,6 +58,7 @@ params.cadd_wg_snvs = Channel.fromPath("/data/VEP/GRCh37/Plugin_files/whole_geno
 params.cadd_wg_snvs_tbi = Channel.fromPath("/data/VEP/GRCh37/Plugin_files/whole_genome_SNVs.tsv.gz.tbi").getVal()
 params.cadd_indels = Channel.fromPath("/data/VEP/GRCh37/Plugin_files/InDels.tsv.gz").getVal()
 params.cadd_indels_tbi = Channel.fromPath("/data/VEP/GRCh37/Plugin_files/InDels.tsv.gz.tbi").getVal()
+params.lof = Channel.fromPath("/data/VEP/VEP_plugins/LoFtool_scores.txt").getVal()
 
 // Not sure where to use these files, omit for now 
 //params.omni = Channel.fromPath("$params.refDir/KG_omni*.gz").getVal()
@@ -271,7 +272,7 @@ process Filter_Indels {
 	tuple val(base), file(vcf) from filter_indels
 	
 	output:
-	tuple val(base), file('*.indels.vcf.gz') into snps_filtered
+	tuple val(base), file('*.indels.vcf.gz') into indels_filtered
 	
 	script:
 	"""
@@ -303,6 +304,7 @@ process VEP {
 	file(fasta) from params.fasta
 	tuple file(cadd_snv), file(cadd_snv_tbi) from Channel.value([params.cadd_wg_snvs, params.cadd_wg_snvs_tbi])
 	tuple file(cadd_indels), file(cadd_indels_tbi) from Channel.value([params.cadd_indels, params.cadd_indels_tbi])
+	file(lof) from params.lof
 	
     	output:
         tuple val(base), file("${base}_VEP.ann.vcf") into vepVCF
@@ -312,7 +314,7 @@ process VEP {
     	script:
 	reducedVCF = reduceVCF(vcf.fileName)
 	CADD = "--plugin CADD,whole_genome_SNVs.tsv.gz,InDels.tsv.gz"
-	LOF = "--plugin LoFtool,/data/VEP/VEP_plugins/LoFtool_scores.txt"
+	LOF = "--plugin LoFtool,LoFtool_scores.txt"
 	genesplicer = "--plugin GeneSplicer,/opt/conda/envs/Germline_VC/bin/genesplicer,/opt/conda/envs/Germline_VC/share/genesplicer-1.0-1/human,context=200,tmpdir=\$PWD/${reducedVCF}"
     	"""
     	vep \
