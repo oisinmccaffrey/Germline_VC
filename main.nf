@@ -127,7 +127,7 @@ process MarkDuplicates{
 
 	output:
 	tuple val(base), file("${base}.md.bam"), file("${base}.md.bam.bai") into bam_duplicates_marked
-	tuple val(base), file("${base}.bam.metrics") into into duplicates_marked_report
+	file("${base}.bam.metrics") into into duplicates_marked_report
 	
 	script:
 	"""
@@ -162,7 +162,8 @@ process BQSR{
 	output:
 	tuple val(base), file("${base}.recal.bam"), file("${base}.recal.bam.bai") into BQSR_bams
 	tuple val(base), file("${base}.recal.bam") into bam_recalibrated_qc
-	tuple val(base), file("${base}.recal.stats.out") into samtoolsStatsReport
+	file("${base}.recal.stats.out") into samtoolsStatsReport
+	file("${base}.recal.table") into baseRecalibratorReport
 
 	script:
 	"""
@@ -317,7 +318,7 @@ process snpEff {
 	val(database) from params.snpeff_db
 	
 	output:
-	tuple val(base), file("${base}_snpEff.genes.txt"), file("${base}_snpEff.html"), file("${base}_snpEff.csv") into snpeffReport
+	set file("${base}_snpEff.genes.txt"), file("${base}_snpEff.html"), file("${base}_snpEff.csv") into snpeffReport
         tuple val(base), file("${base}_snpEff.ann.vcf") into snpeffVCF
 
 	script:
@@ -338,7 +339,7 @@ process snpEff {
 }
 
 
-snpeffReport = snpeffReport.dump(tag:'snpEff report')
+snpeffReport = snpeffReport.dump(tag:'snpEff')
 
 
 process CompressVCFsnpEff {
@@ -502,7 +503,7 @@ process BamQC {
     file(targetBED) from params.bed
 
     output:
-     file("${bam.baseName}") into bamQCReport
+    file("${bam.baseName}") into bamQCReport
 
     script:
     use_bed = "-gff ${targetBED}"
