@@ -12,4 +12,4 @@ VC tools in the box:
 * Manta 
 * Google DeepVariant
 
-Currently only using GATK for analysis. 
+Currently only using GATK for analysis. To set up files for analysis please run DNASeq_references
