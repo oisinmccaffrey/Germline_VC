@@ -107,6 +107,7 @@ process MapReads{
         
         output:
         tuple val(base), file("${base}.bam") into bamMapped
+	tuple val(base), file("${base}.bam") into bamMappedBamQC
 
         script:
         readGroup = "@RG\\tID:HT52VDMXX\\tPU:HT52VDMXX:1\\tSM:METIN\\tLB:METIN\\tPL:illumina"
@@ -126,7 +127,8 @@ process MarkDuplicates{
 
 	output:
 	tuple val(base), file("${base}.md.bam"), file("${base}.md.bam.bai") into bam_duplicates_marked
-
+	tuple val(base), file("${base}.bam.metrics") into into duplicates_marked_report
+	
 	script:
 	"""
 	gatk --java-options -Xmx8g \
@@ -144,6 +146,9 @@ process MarkDuplicates{
 }
 
 
+duplicates_marked_report = duplicates_marked_report.dump(tag:'MD Report')
+
+
 process BQSR{
 
 	publishDir path: "$params.outDir/analysis/bqsr", mode: "copy"
@@ -156,6 +161,8 @@ process BQSR{
 
 	output:
 	tuple val(base), file("${base}.recal.bam"), file("${base}.recal.bam.bai") into BQSR_bams
+	tuple val(base), file("${base}.recal.bam") into bam_recalibrated_qc
+	tuple val(base), file("${base}.recal.stats.out") into samtoolsStatsReport
 
 	script:
 	"""
@@ -178,8 +185,11 @@ process BQSR{
 	--bqsr-recal-file ${base}.recal.table
 
 	samtools index ${base}.recal.bam ${base}.recal.bam.bai
+	samtools stats ${base}.recal.bam > ${base}.recal.stats.out
 	"""
 }
+
+samtoolsStatsReport = samtoolsStatsReport.dump(tag:'SAMTools')
 
 
 /*
@@ -244,7 +254,7 @@ process GenotypeGVCFs {
 }
 
 
-(filter_snps, filter_indels, vcfVEP, vcfsnpEff) = vcfGenotypeGVCFs.into(4)
+(filter_snps, filter_indels, vcfVEP, vcfsnpEff, bcfstats, vcfstats) = vcfGenotypeGVCFs.into(6)
 
 
 process Filter_SNPs {
@@ -290,9 +300,9 @@ process Filter_Indels {
 /*
 ================================================================================
                                  ANNOTATION
-			  Run snpEff | index output
+			  Run snpEff | compress output
 		       Run VEP | Run VEP on snpEff VCF
-			   index both VEP outputs
+			   compress both VEP outputs
 ================================================================================
 */
 
@@ -326,6 +336,9 @@ process snpEff {
     	mv snpEff_summary.html ${base}_snpEff.html
 	"""
 }
+
+
+snpeffReport = snpeffReport.dump(tag:'snpEff report')
 
 
 process CompressVCFsnpEff {
@@ -396,6 +409,8 @@ process VEP {
 }
 
 
+vepReport = vepReport.dump(tag:'VEP')
+
 
 process VEPsnpEff {
 
@@ -447,6 +462,8 @@ process VEPsnpEff {
 }
 
 
+vepReportMerge = vepReportMerge.dump(tag:'VEP')
+
 
 vcfCompressVCFvep = vepVCF.mix(vepVCFmerge)
 
@@ -465,5 +482,124 @@ process CompressVCFvep {
     """
     bgzip < ${vcf} > ${vcf}.gz
     tabix ${vcf}.gz
+    """
+}
+
+
+
+/*
+================================================================================
+				Quality Control
+================================================================================
+*/
+
+process BamQC {
+
+    publishDir path: "$params.outDir/analysis/bamQC", mode: "copy"
+
+    input:
+    tuple val(base), file(bam) from bam_recalibrated_qc
+    file(targetBED) from params.bed
+
+    output:
+     file("${bam.baseName}") into bamQCReport
+
+    script:
+    use_bed = "-gff ${targetBED}"
+    """
+    qualimap --java-mem-size=8G \
+        bamqc \
+        -bam ${bam} \
+        --paint-chromosome-limits \
+        --genome-gc-distr HUMAN \
+        $use_bed \
+        -nt 8 \
+        -skip-duplicated \
+        --skip-dup-mode 0 \
+        -outdir ${bam.baseName} \
+        -outformat HTML
+    """
+}
+
+bamQCReport = bamQCReport.dump(tag:'BamQC')
+
+
+process BcftoolsStats {
+
+    publishDir path: "$params.outDir/analysis/quality", mode: "copy"
+
+    input:
+    tuple val(base), file(vcf) from bcfstats
+
+    output:
+    file ("*.bcf.tools.stats.out") into bcftoolsReport
+
+    script:
+    """
+    bcftools stats ${vcf} > ${base}.bcf.tools.stats.out
+    """
+}
+
+
+bcftoolsReport = bcftoolsReport.dump(tag:'BCFTools')
+
+
+process Vcftools {
+
+    publishDir path: "$params.outDir/analysis/quality", mode: "copy"
+
+    input:
+    tuple val(base), file(vcf) from vcfstats
+
+    output:
+    file ("${base}.*") into vcftoolsReport
+
+    script:
+    """
+    vcftools \
+    --gzvcf ${vcf} \
+    --TsTv-by-count \
+    --out ${base}_count
+    
+    vcftools \
+    --gzvcf ${vcf} \
+    --TsTv-by-qual \
+    --out ${base}_qual
+    
+    vcftools \
+    --gzvcf ${vcf} \
+    --FILTER-summary \
+    --out ${base}_summary
+    """
+}
+
+
+vcftoolsReport = vcftoolsReport.dump(tag:'VCFTools')
+
+
+
+process MultiQC {
+
+    publishDir path: "$params.outDir/analysis/MultiQC", mode: "copy"
+
+    input:
+        file ('bamQC/*') from bamQCReport.collect().ifEmpty([])
+        file ('BCFTools/*') from bcftoolsReport.collect().ifEmpty([])
+        file ('MarkDuplicates/*') from duplicates_marked_report.collect().ifEmpty([])
+        file ('DuplicatesMarked/*.recal.table') from baseRecalibratorReport.collect().ifEmpty([])
+        file ('SamToolsStats/*') from samtoolsStatsReport.collect().ifEmpty([])
+        file ('snpEff/*') from snpeffReport.collect().ifEmpty([])
+        file ('VCFTools/*') from vcftoolsReport.collect().ifEmpty([])
+
+    output:
+    file ("*multiqc_report.html") into ch_multiqc_report
+    file ("*_data")
+    file ("multiqc_plots")
+
+    script:
+    rtitle = "--title Galway Genomics"
+    rfilename = "--filename Galway_Genomics_multiqc_report"
+    """
+    multiqc -f ${rtitle} ${rfilename}  .
     """
 }
