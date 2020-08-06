@@ -127,7 +127,7 @@ process MarkDuplicates{
 
 	output:
 	tuple val(base), file("${base}.md.bam"), file("${base}.md.bam.bai") into bam_duplicates_marked
-	file("${base}.bam.metrics") into into duplicates_marked_report
+	file("${base}.bam.metrics") into duplicates_marked_report
 	
 	script:
 	"""
