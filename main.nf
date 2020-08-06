@@ -189,7 +189,7 @@ process BQSR{
 	"""
 }
 
-samtoolsStatsReport = samtoolsStatsReport.dump(tag:'SAMTools')
+samtoolsStatsReport = samtoolsStatsReport.dump(tag:'SAMToolsStats')
 
 
 /*
