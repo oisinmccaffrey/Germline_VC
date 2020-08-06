@@ -146,7 +146,7 @@ process MarkDuplicates{
 }
 
 
-duplicates_marked_report = duplicates_marked_report.dump(tag:'MD Report')
+duplicates_marked_report = duplicates_marked_report.dump(tag:'MarkDuplicates')
 
 
 process BQSR{
