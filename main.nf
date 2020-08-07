@@ -158,8 +158,9 @@ duplicates_marked_report = duplicates_marked_report.dump(tag:'MarkDuplicates')
 
 
 /*
-  !!! omitting bed intervals until supplied with Illumina capture kit !!!
-  !!! -L option commented out of analysis until discussed with Pilib  !!!
+  !!! omitting bed intervals until supplied with Illumina capture kit 
+  !!! -L option from analysis until discussed with Pilib 
+  !!! (BQSR, ApplyBQSR, haplotypecaller, genotypecaller had -L flags)
 */
 
 
@@ -187,7 +188,6 @@ process BQSR{
 	-O ${base}.recal.table \
 	--tmp-dir . \
 	-R $fasta \
-	//-L $intlist \
 	--known-sites $dbsnp \
 	--known-sites $mills 
 
@@ -196,7 +196,6 @@ process BQSR{
 	-I $bam \
 	-O ${base}.recal.bam \
 	-R $fasta \
-	//-L $intlist \
 	--bqsr-recal-file ${base}.recal.table
 
 	samtools index ${base}.recal.bam ${base}.recal.bam.bai
@@ -232,7 +231,6 @@ process HaplotypeCaller {
         HaplotypeCaller \
         -R ${fasta} \
         -I ${bam} \
-        //-L $intlist \
         -D $dbsnp \
         -O ${base}.g.vcf \
         -ERC GVCF
@@ -261,7 +259,6 @@ process GenotypeGVCFs {
 	gatk --java-options -Xmx8g \
         GenotypeGVCFs \
         -R ${fasta} \
-        //-L $intlist \
         -D $dbsnp \
         -V ${gvcf} \
         -O ${base}.vcf
