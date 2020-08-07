@@ -276,7 +276,7 @@ process Split_SNPs_Indels{
 	
 	input:
 	tuple val(base), file(vcf) from vcfGenotypeGVCFs
-	tuple file(fasta), file(dict) from Channel.value([params.fasta, params.dict])
+	tuple file(fasta), file(fai), file(dict) from Channel.value([params.fasta, params.fai, params.dict])
 	
 	output:
 	tuple val(base), file('*.snps.vcf.gz') into snps_vcf
@@ -305,7 +305,7 @@ process Filter_SNPs{
 	
 	input:
 	tuple val(base), file(vcf) from snps_vcf
-	tuple file(fasta), file(dict) from Channel.value([params.fasta, params.dict])
+	tuple file(fasta), file(fai), file(dict) from Channel.value([params.fasta, params.fai, params.dict])
 	
 	output:
 	tuple val(base), file("${base}_filtsnps.vcf") into snps_filtered
@@ -336,7 +336,7 @@ process Filter_Indels{
 	
 	input:
 	tuple val(base), file(vcf) from indels_vcf
-	tuple file(fasta), file(dict) from Channel.value([params.fasta, params.dict])
+	tuple file(fasta), file(fai), file(dict) from Channel.value([params.fasta, params.fai, params.dict])
 	
 	output:
 	tuple val(base), file("${base}_filtindels.vcf") into indels_filtered
