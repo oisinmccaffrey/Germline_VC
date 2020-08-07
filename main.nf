@@ -276,7 +276,7 @@ process Split_SNPs_Indels{
 	
 	input:
 	tuple val(base), file(vcf) from vcfGenotypeGVCFs
-	file(fasta) from params.fasta
+	tuple file(fasta), file(fai) from ([params.fasta, params.fai])
 	
 	output:
 	tuple val(base), file('*.snps.vcf.gz') into snps_vcf
@@ -305,7 +305,7 @@ process Filter_SNPs{
 	
 	input:
 	tuple val(base), file(vcf) from snps_vcf
-	file(fasta) from params.fasta
+	tuple file(fasta), file(fai) from ([params.fasta, params.fai])
 	
 	output:
 	tuple val(base), file("${base}_filtsnps.vcf") into snps_filtered
@@ -336,7 +336,7 @@ process Filter_Indels{
 	
 	input:
 	tuple val(base), file(vcf) from indels_vcf
-	file(fasta) from params.fasta
+	tuple file(fasta), file(fai) from ([params.fasta, params.fai])
 	
 	output:
 	tuple val(base), file("${base}_filtindels.vcf") into indels_filtered
