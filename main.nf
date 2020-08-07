@@ -186,6 +186,7 @@ process BQSR{
 	BaseRecalibrator \
 	-I $bam \
 	-O ${base}.recal.table \
+	-L $intlist \
 	--tmp-dir . \
 	-R $fasta \
 	--known-sites $dbsnp \
@@ -195,6 +196,7 @@ process BQSR{
 	ApplyBQSR \
 	-I $bam \
 	-O ${base}.recal.bam \
+	-L $intlist \
 	-R $fasta \
 	--bqsr-recal-file ${base}.recal.table
 
@@ -231,6 +233,7 @@ process HaplotypeCaller {
         HaplotypeCaller \
         -R ${fasta} \
         -I ${bam} \
+	-L $intlist \
         -D $dbsnp \
         -O ${base}.g.vcf \
         -ERC GVCF
@@ -259,6 +262,7 @@ process GenotypeGVCFs {
 	gatk --java-options -Xmx8g \
         GenotypeGVCFs \
         -R ${fasta} \
+	-L $intlist \
         -D $dbsnp \
         -V ${gvcf} \
         -O ${base}.vcf
