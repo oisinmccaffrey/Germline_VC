@@ -596,11 +596,11 @@ process MultiQC {
     	output:
     	file ("*multiqc_report.html") into ch_multiqc_report
     	file ("*_data")
-    	file ("multiqc_plots")
 
     	script:
     	rtitle = "--title Galway_Genomics"
+	rfilename = "--filename Galway_Genomics_multiqc_report"
     	"""
-    	multiqc -f ${rtitle} .
+    	multiqc -f ${rtitle} ${rfilename} .
     	"""
 }
