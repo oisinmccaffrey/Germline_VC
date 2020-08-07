@@ -600,8 +600,7 @@ process MultiQC {
 
     	script:
     	rtitle = "--title Galway Genomics"
-    	rfilename = "--filename Galway_Genomics_multiqc_report"
     	"""
-    	multiqc -f ${rtitle} ${rfilename}  .
+    	multiqc -f ${rtitle} .
     	"""
 }
