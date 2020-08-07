@@ -85,7 +85,7 @@ params.exac_tbi = Channel.fromPath("/data/VEP/VEP_plugins/ExAC.r0.3.1.sites.vep.
  FASTQ reads
 */
 
-params.reads = "/data/bdigby/WES/reads/*trim_R{1,2}.fastq.gz"
+params.reads = "/data/bdigby/WES/reads/METIN_YUSA_EZELSOY_R{1,2}_001.fastq.gz"
 Channel
         .fromFilePairs( params.reads )
         .set{ reads_ch }
