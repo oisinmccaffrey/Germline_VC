@@ -561,17 +561,17 @@ process Vcftools {
     	vcftools \
     	--gzvcf ${vcf} \
     	--TsTv-by-count \
-    	--out ${base}_count
+    	--out ${base}.vcf
     
     	vcftools \
     	--gzvcf ${vcf} \
     	--TsTv-by-qual \
-    	--out ${base}_qual
+    	--out ${base}.vcf
     
     	vcftools \
     	--gzvcf ${vcf} \
     	--FILTER-summary \
-    	--out ${base}_summary
+    	--out ${base}.vcf
     	"""
 }
 
