@@ -287,14 +287,14 @@ process Split_SNPs_Indels{
 	gatk SelectVariants \
 	-R $fasta
     	-V $vcf \
-    	-select-type SNP \
-    	-O ${base}.snps.vcf.gz
+	-O ${base}.snps.vcf.gz \
+    	-select-type SNP 
 	
 	gatk SelectVariants \
 	-R $fasta
     	-V $vcf \
-    	-select-type INDEL \
-    	-O ${base}.indels.vcf.gz	
+    	-O ${base}.indels.vcf.gz \
+    	-select-type INDEL 	
 	"""
 }
 
