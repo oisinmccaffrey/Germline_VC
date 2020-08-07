@@ -16,8 +16,15 @@ nextflow -bg -q run BarryDigby/Germline_VC -profile standard, singularity \
 --------------------------------------------------------------------------------
 */
 
+
 /*
- Reference Files
+================================================================================
+                           Pipeline Parameters
+================================================================================
+*/
+
+/*
+ Reference Genome Files
 */
 
 params.fasta = Channel.fromPath("$params.refDir/*fasta").getVal()
@@ -30,14 +37,16 @@ params.bwt = Channel.fromPath("$params.refDir/*fasta.bwt").getVal()
 params.pac = Channel.fromPath("$params.refDir/*fasta.pac").getVal()
 params.sa = Channel.fromPath("$params.refDir/*fasta.sa").getVal()
 
+
 /*
- Exome Intervals, files
+ Exome Intervals, bed files
 */
 
 params.intlist = Channel.fromPath("$params.refDir/exome/*.bed.interval_list").getVal()
 params.bed = Channel.fromPath("$params.refDir/exome/*.bed").getVal()
 params.bedgz = Channel.fromPath("$params.refDir/exome/*.bed.gz").getVal()
 params.bedgztbi = Channel.fromPath("$params.refDir/exome/*.bed.gz.tbi").getVal()
+
 
 /*
  dbSNP, known Indels
@@ -48,31 +57,29 @@ params.dbsnptbi = Channel.fromPath("$params.refDir/dbsnp*.tbi").getVal()
 params.mills = Channel.fromPath("$params.refDir/Mills_KG*.gz").getVal()
 params.millstbi = Channel.fromPath("$params.refDir/Mills_KG*.gz.tbi").getVal()
 
+
 /*
- Annotation cache, database versions
+ Annotation tools cache, database versions
 */
 
 params.vep_cache = "/data/VEP/GRCh37"
 params.vep_version = "99"
+params.snpeff_cache = "/data/snpEff"
+params.snpeff_db = "GRCh37.75"
+
+
+/*
+ VEP Plugin files (CADD, LoFTool, ExAC)
+*/
+
 params.cadd_wg_snvs = Channel.fromPath("/data/VEP/GRCh37/Plugin_files/whole_genome_SNVs.tsv.gz").getVal()
 params.cadd_wg_snvs_tbi = Channel.fromPath("/data/VEP/GRCh37/Plugin_files/whole_genome_SNVs.tsv.gz.tbi").getVal()
 params.cadd_indels = Channel.fromPath("/data/VEP/GRCh37/Plugin_files/InDels.tsv.gz").getVal()
 params.cadd_indels_tbi = Channel.fromPath("/data/VEP/GRCh37/Plugin_files/InDels.tsv.gz.tbi").getVal()
 params.lof = Channel.fromPath("/data/VEP/VEP_plugins/LoFtool_scores.txt").getVal()
+params.exac = Channel.fromPath("/data/VEP/VEP_plugins/ExAC.r0.3.1.sites.vep.vcf.gz").getVal()
+params.exac_tbi = Channel.fromPath("/data/VEP/VEP_plugins/ExAC.r0.3.1.sites.vep.vcf.gz.tbi").getVal()
 
-params.snpeff_cache = "/data/snpEff"
-params.snpeff_db = "GRCh37.75"
-
-// Not sure where to use these files, omit for now 
-//params.omni = Channel.fromPath("$params.refDir/KG_omni*.gz").getVal()
-//params.otbi = Channel.fromPath("$params.refDir/KG_omni*.gz.tbi").getVal()
-//params.kgp1 = Channel.fromPath("$params.refDir/KG_phase1*.gz").getVal()
-//params.ktbi = Channel.fromPath("$params.refDir/KG_phase1*.gz.tbi").getVal()
-//params.hpmp = Channel.fromPath("$params.refDir/hapmap*.gz").getVal()
-//params.htbi = Channel.fromPath("$params.refDir/hapmap*.gz.tbi").getVal()
-
-//params.gps = Channel.fromPath("$params.refDir/exome/af-only-gnomad.*.vcf.gz").getVal()
-//params.gpstbi = Channel.fromPath("$params.refDir/exome/af-only-gnomad.*.vcf.gz.tbi").getVal()
 
 /*
  FASTQ reads
@@ -82,6 +89,7 @@ params.reads = "/data/bdigby/WES/reads/*trim_R{1,2}.fastq.gz"
 Channel
         .fromFilePairs( params.reads )
         .set{ reads_ch }
+
 
 /*
  Initialise outDir
