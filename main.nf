@@ -599,7 +599,7 @@ process MultiQC {
     	file ("multiqc_plots")
 
     	script:
-    	rtitle = "--title Galway Genomics"
+    	rtitle = "--title Galway_Genomics"
     	"""
     	multiqc -f ${rtitle} .
     	"""
