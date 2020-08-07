@@ -157,6 +157,12 @@ process MarkDuplicates{
 duplicates_marked_report = duplicates_marked_report.dump(tag:'MarkDuplicates')
 
 
+/*
+  !!! omitting bed intervals until supplied with Illumina capture kit !!!
+  !!! -L option commented out of analysis until discussed with Pilib  !!!
+*/
+
+
 process BQSR{
 
 	publishDir path: "$params.outDir/analysis/bqsr", mode: "copy"
@@ -181,7 +187,7 @@ process BQSR{
 	-O ${base}.recal.table \
 	--tmp-dir . \
 	-R $fasta \
-	-L $intlist \
+	//-L $intlist \
 	--known-sites $dbsnp \
 	--known-sites $mills 
 
@@ -190,7 +196,7 @@ process BQSR{
 	-I $bam \
 	-O ${base}.recal.bam \
 	-R $fasta \
-	-L $intlist \
+	//-L $intlist \
 	--bqsr-recal-file ${base}.recal.table
 
 	samtools index ${base}.recal.bam ${base}.recal.bam.bai
@@ -226,8 +232,8 @@ process HaplotypeCaller {
         HaplotypeCaller \
         -R ${fasta} \
         -I ${bam} \
-        -L $intlist \
-        --D $dbsnp \
+        //-L $intlist \
+        -D $dbsnp \
         -O ${base}.g.vcf \
         -ERC GVCF
 	"""
@@ -255,8 +261,8 @@ process GenotypeGVCFs {
 	gatk --java-options -Xmx8g \
         GenotypeGVCFs \
         -R ${fasta} \
-        -L $intlist \
-        --D $dbsnp \
+        //-L $intlist \
+        -D $dbsnp \
         -V ${gvcf} \
         -O ${base}.vcf
 	"""
@@ -452,7 +458,9 @@ process VEPsnpEff {
 	file(fasta) from params.fasta
 	tuple file(cadd_snv), file(cadd_snv_tbi) from Channel.value([params.cadd_wg_snvs, params.cadd_wg_snvs_tbi])
 	tuple file(cadd_indels), file(cadd_indels_tbi) from Channel.value([params.cadd_indels, params.cadd_indels_tbi])
+	tuple file(exac), file(exac_tbi) from Channel.value([params.exac, params.exac_tbi])
 	file(lof) from params.lof
+
 	
     	output:
         tuple val(base), file("${base}_VEP.ann.vcf") into vepVCF
