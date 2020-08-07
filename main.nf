@@ -263,56 +263,129 @@ process GenotypeGVCFs {
 }
 
 
-(filter_snps, filter_indels, vcfVEP, vcfsnpEff, bcfstats, vcfstats) = vcfGenotypeGVCFs.into(6)
-
-
-process Filter_SNPs {
+process Split_SNPs_Indels{
 	
-	publishDir path: "$params.outDir/analysis/SNPs", mode: "copy"
+	publishDir path: "$params.outDir/analysis/splits", mode: "copy"
 	
 	input:
-	tuple val(base), file(vcf) from filter_snps
+	tuple val(base), file(vcf) from vcfGenotypeGVCFs
+	file(fasta) from params.fasta
 	
 	output:
-	tuple val(base), file('*.snps.vcf.gz') into snps_filtered
+	tuple val(base), file('*.snps.vcf.gz') into snps_vcf
+	tuple val(base), file('*.indels.vcf.gz') into indels_vcf
 	
 	script:
 	"""
 	gatk SelectVariants \
+	-R $fasta
     	-V $vcf \
     	-select-type SNP \
     	-O ${base}.snps.vcf.gz
+	
+	gatk SelectVariants \
+	-R $fasta
+    	-V $vcf \
+    	-select-type INDEL \
+    	-O ${base}.indels.vcf.gz	
 	"""
 }
 
 
-process Filter_Indels {
+process Filter_SNPs{
 
-	publishDir path: "$params.outDir/analysis/Indels", mode: "copy"
+	publishDir path: "$params.outDir/analysis/splits", mode: "copy"
 	
 	input:
-	tuple val(base), file(vcf) from filter_indels
+	tuple val(base), file(vcf) from snps_vcf
+	file(fasta) from params.fasta
 	
 	output:
-	tuple val(base), file('*.indels.vcf.gz') into indels_filtered
+	tuple val(base), file("${base}_filtsnps.vcf") into snps_filtered
 	
 	script:
 	"""
-	gatk SelectVariants \
-    	-V $vcf \
-    	-select-type INDEL \
-    	-O ${base}.indels.vcf.gz
+	gatk VariantFiltration \
+	-R $fasta \
+	-V $vcf \
+	-O ${base}_filtsnps.vcf \
+	--filterExpression "QD < 2.0" \
+	--filterName "filterQD_lt2.0" \
+	--filterExpression "MQ < 25.0" \
+	--filterName "filterMQ_lt25.0" \
+	--filterExpression "SOR > 3.0" \
+	--filterName "filterSOR_gt3.0" \
+	--filterExpression "MQRankSum < -12.5" \
+	--filterName "filterMQRankSum_lt-12.5" \
+	--filterExpression "ReadPosRankSum < -8.0" \
+	--filterName "filterReadPosRankSum_lt-8.0"
 	"""
 }
+
+
+process Filter_Indels{
+
+	publishDir path: "$params.outDir/analysis/splits", mode: "copy"
+	
+	input:
+	tuple val(base), file(vcf) from indels_vcf
+	file(fasta) from params.fasta
+	
+	output:
+	tuple val(base), file("${base}_filtindels.vcf") into indels_filtered
+	
+	script:
+	"""
+	gatk VariantFiltration \
+	-R $fasta \
+	-V $vcf \
+	-O ${base}_filtindels.vcf \
+	--filterExpression "QD < 2.0" \
+	--filterName "filterQD" \
+	--filterExpression "SOR > 10.0" \
+	--filterName "filterSOR_gt10.0" \
+	--filterExpression "ReadPosRankSum < -20.0" \
+	--filterName "filterReadPosRankSum"
+	"""
+}
+
+
+
+process Merge_VCFs {
+
+	publishDir path: "$params.outDir/analysis/splits", mode: "copy"
+	
+	input:
+	tuple val(base), file(snps) from snps_filtered
+	tuple val(base), file(indels) from indels_filtered
+	
+	output:
+	tuple val(base), file(vcf) into filtered_vcf
+	
+	script:
+	"""
+	gatk MergeVcfs \
+        -I= $snps \
+        -I= $indels \
+        -O= ${base}.vcf.gz
+	"""
+}
+
+
+
+(vcfsnpEff, bcfstats, vcfstats) = filtered_vcf.into(3)
 
 
 /*
 ================================================================================
                                  ANNOTATION
-			  Run snpEff | compress output
-		       Run VEP | Run VEP on snpEff VCF
-			   compress both VEP outputs
 ================================================================================
+*/
+
+/*
+ Annotation Strategy: 
+ 	Run VCF through snpEff, then run through VEP with Plugins for rich 
+  	annotation and GAVIN compatability (requires snpEff, CADD, ExAC ann)
 */
 
 
@@ -368,12 +441,12 @@ process CompressVCFsnpEff {
 }
 
 
-process VEP {
+process VEPsnpEff {
 
-    	publishDir path: "$params.outDir/analysis/VEP", mode: "copy"
+    	publishDir path: "$params.outDir/analysis/snpEff", mode: "copy"
 
     	input:
-        tuple val(base), file(vcf) from vcfVEP
+        tuple val(base), file(vcf), file(vcf_tbi) from compressVCFsnpEffOut
         val(dataDir) from params.vep_cache
         val(vepversion) from params.vep_version
 	file(fasta) from params.fasta
@@ -387,6 +460,7 @@ process VEP {
 
 
     	script:
+	ExAC = "--plugin ExAC,ExAC.r0.3.1.sites.vep.vcf.gz"
 	CADD = "--plugin CADD,whole_genome_SNVs.tsv.gz,InDels.tsv.gz"
 	LOF = "--plugin LoFtool,LoFtool_scores.txt"
 	genesplicer = "--plugin GeneSplicer,/opt/conda/envs/Germline_VC/bin/genesplicer,/opt/conda/envs/Germline_VC/share/genesplicer-1.0-1/human,context=200,tmpdir=\$PWD/${base}"
@@ -396,6 +470,7 @@ process VEP {
     	-o ${base}_VEP.ann.vcf \
     	--assembly GRCh37 \
     	--species homo_sapiens \
+	${ExAC} \
 	${CADD} \
 	${LOF} \
 	${genesplicer} \
@@ -421,68 +496,12 @@ process VEP {
 vepReport = vepReport.dump(tag:'VEP')
 
 
-process VEPsnpEff {
-
-    	publishDir path: "$params.outDir/analysis/snpEff", mode: "copy"
-
-    	input:
-        tuple val(base), file(vcf) from compressVCFsnpEffOut
-        val(dataDir) from params.vep_cache
-        val(vepversion) from params.vep_version
-	file(fasta) from params.fasta
-	tuple file(cadd_snv), file(cadd_snv_tbi) from Channel.value([params.cadd_wg_snvs, params.cadd_wg_snvs_tbi])
-	tuple file(cadd_indels), file(cadd_indels_tbi) from Channel.value([params.cadd_indels, params.cadd_indels_tbi])
-	file(lof) from params.lof
-	
-    	output:
-        tuple val(base), file("${base}_VEP.ann.vcf") into vepVCFmerge
-        file("${base}_VEP.summary.html") into vepReportMerge
-
-
-    	script:
-	CADD = "--plugin CADD,whole_genome_SNVs.tsv.gz,InDels.tsv.gz"
-	LOF = "--plugin LoFtool,LoFtool_scores.txt"
-	genesplicer = "--plugin GeneSplicer,/opt/conda/envs/Germline_VC/bin/genesplicer,/opt/conda/envs/Germline_VC/share/genesplicer-1.0-1/human,context=200,tmpdir=\$PWD/${base}"
-    	"""
-    	vep \
-    	-i ${vcf} \
-    	-o ${base}_VEP.ann.vcf \
-    	--assembly GRCh37 \
-    	--species homo_sapiens \
-	${CADD} \
-	${LOF} \
-	${genesplicer} \
-	--offline \
-    	--cache \
-	--fasta $fasta \
-    	--cache_version ${vepversion} \
-    	--dir_cache ${dataDir} \
-    	--everything \
-    	--filter_common \
-    	--fork 4 \
-    	--format vcf \
-    	--per_gene \
-    	--stats_file ${base}_VEP.summary.html \
-    	--total_length \
-    	--vcf
-	
-	rm -rf ${base}
-    	"""
-}
-
-
-vepReportMerge = vepReportMerge.dump(tag:'VEP')
-
-
-vcfCompressVCFvep = vepVCF.mix(vepVCFmerge)
-
-
 process CompressVCFvep {
 
     	publishDir path: "$params.outDir/analysis/combined_annot", mode: "copy"
 
     	input:
-   	tuple val(base), file(vcf) from vcfCompressVCFvep
+   	tuple val(base), file(vcf) from vepVCF
 
     	output:
     	tuple val(base), file("*.vcf.gz"), file("*.vcf.gz.tbi") into compressVCFOutVEP
