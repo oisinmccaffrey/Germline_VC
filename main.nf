@@ -375,7 +375,7 @@ process Merge_VCFs {
 	tuple val(base), file(indels) from indels_filtered
 	
 	output:
-	tuple val(base), file(vcf) into filtered_vcf
+	tuple val(base), file("${base}.vcf.gz") into filtered_vcf
 	
 	script:
 	"""
