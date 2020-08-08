@@ -316,16 +316,16 @@ process Filter_SNPs{
 	-R $fasta \
 	-V $vcf \
 	-O ${base}_filtsnps.vcf \
-	--filterExpression "QD < 2.0" \
-	--filterName "filterQD_lt2.0" \
-	--filterExpression "MQ < 25.0" \
-	--filterName "filterMQ_lt25.0" \
-	--filterExpression "SOR > 3.0" \
-	--filterName "filterSOR_gt3.0" \
-	--filterExpression "MQRankSum < -12.5" \
-	--filterName "filterMQRankSum_lt-12.5" \
-	--filterExpression "ReadPosRankSum < -8.0" \
-	--filterName "filterReadPosRankSum_lt-8.0"
+	--filter-expression "QD < 2.0" \
+	--filter-name "filterQD_lt2.0" \
+	--filter-expression "MQ < 25.0" \
+	--filter-name "filterMQ_lt25.0" \
+	--filter-expression "SOR > 3.0" \
+	--filter-name "filterSOR_gt3.0" \
+	--filter-expression "MQRankSum < -12.5" \
+	--filter-name "filterMQRankSum_lt-12.5" \
+	--filter-expression "ReadPosRankSum < -8.0" \
+	--filter-name "filterReadPosRankSum_lt-8.0"
 	"""
 }
 
@@ -347,12 +347,12 @@ process Filter_Indels{
 	-R $fasta \
 	-V $vcf \
 	-O ${base}_filtindels.vcf \
-	--filterExpression "QD < 2.0" \
-	--filterName "filterQD" \
-	--filterExpression "SOR > 10.0" \
-	--filterName "filterSOR_gt10.0" \
-	--filterExpression "ReadPosRankSum < -20.0" \
-	--filterName "filterReadPosRankSum"
+	--filter-expression "QD < 2.0" \
+	--filter-name "filterQD" \
+	--filter-expression "SOR > 10.0" \
+	--filter-name "filterSOR_gt10.0" \
+	--filter-expression "ReadPosRankSum < -20.0" \
+	--filter-name "filterReadPosRankSum"
 	"""
 }
 
