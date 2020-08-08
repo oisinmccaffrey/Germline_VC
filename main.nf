@@ -312,6 +312,10 @@ process Filter_SNPs{
 	
 	script:
 	"""
+	gatk --java-options -Xmx8g \
+	IndexFeatureFile \
+        -I ${vcf}
+	
 	gatk VariantFiltration \
 	-R $fasta \
 	-V $vcf \
@@ -343,6 +347,10 @@ process Filter_Indels{
 	
 	script:
 	"""
+	gatk --java-options -Xmx8g \
+	IndexFeatureFile \
+        -I ${vcf}
+	
 	gatk VariantFiltration \
 	-R $fasta \
 	-V $vcf \
