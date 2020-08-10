@@ -1,0 +1,18 @@
+## Shell into container to use snpEff
+
+## snpEff on Fitlered VCF file 
+snpEff -Xmx8G GRCh37.75 -dataDir /data/snpEff/ -nostats -noLog -lof -canon -ud 0 METIN_YUSA_EZELSOY_R.vcf.gz > METIN.snpeff.vcf
+
+## Add ExAC annotations
+java -Xmx4g -jar CmdLineAnnotator-1.21.1.jar -a exac -s /data/VEP/GRCh37/Plugin_files/ExAC.r0.3.1.sites.vep.vcf.gz -i METIN.snpeff.vcf -o METIN.snpeff.exac.vcf
+
+## Add CADD annotations
+java -Xmx4g -jar CmdLineAnnotator-1.21.1.jar -a cadd -s /data/VEP/GRCh37/Plugin_files/whole_genome_SNVs.tsv.gz -i METIN.snpeff.exac.vcf -o METIN.snpeff.exac.cadd.vcf
+
+## GAVIN Pre-processing
+java -Xmx8G -jar GAVIN-Plus-1.0.jar -i METIN.snpeff.exac.cadd.vcf -o METIN.gavin_firstpass.vcf -m CREATEFILEFORCADD -a METIN.toCadd.tsv -c clinvar.patho.fix.11oct2016.vcf.gz -d CGD_11oct2016.txt.gz -f FDR_allGenes_r1.0.tsv -g GAVIN_calibrations_r0.3.tsv
+
+## Upload METIN.toCadd.tsv to CADD/scores in browser. 
+
+## GAVIN 
+java -Xmx8G -jar GAVIN-Plus-1.0.jar -i METIN.snpeff.exac.cadd.vcf -o METIN.gavin_secondpass.vcf -m ANALYSIS -a GRCh37-v1.6_20906826fcb21a4da37688a448efa174.tsv -c clinvar.patho.fix.11oct2016.vcf.gz -d CGD_11oct2016.txt.gz -f FDR_allGenes_r1.0.tsv -g GAVIN_calibrations_r0.3.tsv
