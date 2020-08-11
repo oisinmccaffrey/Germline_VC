@@ -157,13 +157,6 @@ process MarkDuplicates{
 duplicates_marked_report = duplicates_marked_report.dump(tag:'MarkDuplicates')
 
 
-/*
-  !!! omitting bed intervals until supplied with Illumina capture kit 
-  !!! -L option from analysis until discussed with Pilib 
-  !!! (BQSR, ApplyBQSR, haplotypecaller, genotypecaller had -L flags)
-*/
-
-
 process BQSR{
 
 	publishDir path: "$params.outDir/analysis/bqsr", mode: "copy"
