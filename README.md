@@ -1,7 +1,7 @@
 # Germline_VC
 Germline Variant Calling (Single Sample)
 ***
-Single sample Germline Variant Calling analysis (Galway Genomics July 2019). 
+Single sample Germline Variant Calling analysis (Galway Genomics July 2020). 
 
 VC tools in the box:
 
