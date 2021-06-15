@@ -401,7 +401,7 @@ process snpEff{
 	  val(database) from params.snpeff_db
 
     output:
-    tuple val(base), file("${base}.snpeff.vcf") into out
+    tuple val(base), file("${base}.snpeff.vcf") into snpeff_out
 
     script:
     cache = "-dataDir ${cache}"
@@ -416,5 +416,36 @@ process snpEff{
         -ud 0 \\
         $vcf > ${base}.snpeff.vcf
     """
+
+}
+
+
+process EXaC {
+
+    publishDir path: "$params.outDir/analysis/EXaC", mode:'copy'
+
+    input:
+    tuple val(base), file(vcf) from snpeff_out
+
+    output:
+    tuple val(base), file("${base}.snpeff.exac.vcf") into exac_out
+
+    script:
+    """
+    java -Xmx4g -jar ${projectDir}/bin/CmdLineAnnotator-1.21.1.jar \\
+    -a exac \\
+    -s /data/VEP/GRCh37/Plugin_files/ExAC.r0.3.1.sites.vep.vcf.gz \\
+    -i $vcf -o ${base}.snpeff.exac.vcf
+    """
+
+}
+
+
+process CADD {
+
+    publishDir path: "$params.outDir/analysis/CADD", mode:'copy'
+
+    input:
+    tuple val(base), file
 
 }
