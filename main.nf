@@ -435,7 +435,8 @@ process EXaC {
     java -Xmx4g -jar ${projectDir}/bin/CmdLineAnnotator-1.21.1.jar \\
     -a exac \\
     -s /data/VEP/GRCh37/Plugin_files/ExAC.r0.3.1.sites.vep.vcf.gz \\
-    -i $vcf -o ${base}.snpeff.exac.vcf
+    -i $vcf \\
+    -o ${base}.snpeff.exac.vcf
     """
 
 }
@@ -459,4 +460,29 @@ process CADD {
     -i $vcf \\
     -o ${base}.snpeff.exac.cadd.vcf
     """
+}
+
+process GAVIN_toCADD {
+
+    publishDir path: "$params.outDir/analysis/upload_to_CADD", mode:'copy'
+
+    input:
+    tuple val(base), file(vcf) from cadd_out
+
+    output:
+    tuple val(base), file("${base}.toCadd.tsv") into cadd_out
+
+    script:
+    """
+    java -Xmx8G -jar ${projectDir}/bin/GAVIN-Plus-1.0.jar \\
+    -i $vcf \\
+    -o ${base}.gavin_firstpass.vcf \\
+    -m CREATEFILEFORCADD \\
+    -a ${base}.toCadd.tsv \\
+    -c ${projectDir}/assets/clinvar.patho.fix.11oct2016.vcf.gz \\
+    -d ${projectDir}/assets/CGD_11oct2016.txt.gz \\
+    -f ${projectDir}/assets/FDR_allGenes_r1.0.tsv \\
+    -g ${projectDir}/assets/GAVIN_calibrations_r0.3.tsv
+    """
+
 }
