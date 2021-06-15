@@ -105,14 +105,14 @@ params.outDir = ""
 
 
 process MapReads{
-        
+
 	publishDir path: "$params.outDir/analysis/bwa", mode: "copy"
-	
+
         input:
         tuple val(base), file(reads) from reads_ch
         tuple file(fasta), file(fai) from Channel.value([params.fasta, params.fai])
         tuple file(amb), file(ann), file(bwt), file(pac), file(sa) from Channel.value([params.amb, params.ann, params.bwt, params.pac, params.sa])
-        
+
         output:
         tuple val(base), file("${base}.bam") into bamMapped
 	tuple val(base), file("${base}.bam") into bamMappedBamQC
@@ -136,7 +136,7 @@ process MarkDuplicates{
 	output:
 	tuple val(base), file("${base}.md.bam"), file("${base}.md.bam.bai") into bam_duplicates_marked
 	file("${base}.bam.metrics") into duplicates_marked_report
-	
+
 	script:
 	"""
 	gatk --java-options -Xmx8g \
@@ -148,7 +148,7 @@ process MarkDuplicates{
         --ASSUME_SORT_ORDER coordinate \
         --CREATE_INDEX true \
         --OUTPUT ${base}.md.bam
-    
+
         mv ${base}.md.bai ${base}.md.bam.bai
 	"""
 }
@@ -183,7 +183,7 @@ process BQSR{
 	--tmp-dir . \
 	-R $fasta \
 	--known-sites $dbsnp \
-	--known-sites $mills 
+	--known-sites $mills
 
 	gatk --java-options -Xmx8g \
 	ApplyBQSR \
@@ -211,15 +211,15 @@ samtoolsStatsReport = samtoolsStatsReport.dump(tag:'SAMToolsStats')
 process HaplotypeCaller {
 
 	publishDir path: "$params.outDir/analysis/haplotypecaller", mode: "copy"
-	
+
 	input:
 	tuple val(base), file(bam), file(bai) from BQSR_bams
 	tuple file(fasta), file(fai), file(dict), file(intlist) from Channel.value([params.fasta, params.fai, params.dict, params.intlist])
 	tuple file(dbsnp), file(dbsnptbi) from Channel.value([params.dbsnp, params.dbsnptbi])
-	
+
 	output:
 	tuple val(base), file("${base}.g.vcf") into gvcfHaplotypeCaller
-	
+
 	script:
 	"""
 	gatk --java-options -Xmx8g \
@@ -237,21 +237,21 @@ process HaplotypeCaller {
 process GenotypeGVCFs {
 
 	publishDir path: "$params.outDir/analysis/genotypeGVCF", mode: "copy"
-	
+
 	input:
 	tuple val(base), file(gvcf) from gvcfHaplotypeCaller
 	tuple file(fasta), file(fai), file(dict), file(intlist) from Channel.value([params.fasta, params.fai, params.dict, params.intlist])
 	tuple file(dbsnp), file(dbsnptbi) from Channel.value([params.dbsnp, params.dbsnptbi])
-	
+
 	output:
 	tuple val(base), file("${base}.vcf") into vcfGenotypeGVCFs
-	
+
 	script:
 	"""
 	gatk --java-options -Xmx8g \
 	IndexFeatureFile \
         -I ${gvcf}
-	
+
 	gatk --java-options -Xmx8g \
         GenotypeGVCFs \
         -R ${fasta} \
@@ -264,30 +264,30 @@ process GenotypeGVCFs {
 
 
 process Split_SNPs_Indels{
-	
+
 	publishDir path: "$params.outDir/analysis/splits", mode: "copy"
-	
+
 	input:
 	tuple val(base), file(vcf) from vcfGenotypeGVCFs
 	tuple file(fasta), file(fai), file(dict) from Channel.value([params.fasta, params.fai, params.dict])
-	
+
 	output:
 	tuple val(base), file('*.snps.vcf.gz') into snps_vcf
 	tuple val(base), file('*.indels.vcf.gz') into indels_vcf
-	
+
 	script:
 	"""
 	gatk SelectVariants \
 	-R $fasta \
     	-V $vcf \
 	-O ${base}.snps.vcf.gz \
-    	-select-type SNP 
-	
+    	-select-type SNP
+
 	gatk SelectVariants \
 	-R $fasta \
     	-V $vcf \
     	-O ${base}.indels.vcf.gz \
-    	-select-type INDEL 	
+    	-select-type INDEL
 	"""
 }
 
@@ -295,20 +295,20 @@ process Split_SNPs_Indels{
 process Filter_SNPs{
 
 	publishDir path: "$params.outDir/analysis/splits", mode: "copy"
-	
+
 	input:
 	tuple val(base), file(vcf) from snps_vcf
 	tuple file(fasta), file(fai), file(dict) from Channel.value([params.fasta, params.fai, params.dict])
-	
+
 	output:
 	tuple val(base), file("${base}_filtsnps.vcf") into snps_filtered
-	
+
 	script:
 	"""
 	gatk --java-options -Xmx8g \
 	IndexFeatureFile \
         -I ${vcf}
-	
+
 	gatk VariantFiltration \
 	-R $fasta \
 	-V $vcf \
@@ -330,20 +330,20 @@ process Filter_SNPs{
 process Filter_Indels{
 
 	publishDir path: "$params.outDir/analysis/splits", mode: "copy"
-	
+
 	input:
 	tuple val(base), file(vcf) from indels_vcf
 	tuple file(fasta), file(fai), file(dict) from Channel.value([params.fasta, params.fai, params.dict])
-	
+
 	output:
 	tuple val(base), file("${base}_filtindels.vcf") into indels_filtered
-	
+
 	script:
 	"""
 	gatk --java-options -Xmx8g \
 	IndexFeatureFile \
         -I ${vcf}
-	
+
 	gatk VariantFiltration \
 	-R $fasta \
 	-V $vcf \
@@ -362,14 +362,14 @@ process Filter_Indels{
 process Merge_VCFs {
 
 	publishDir path: "$params.outDir/analysis/splits", mode: "copy"
-	
+
 	input:
 	tuple val(base), file(snps) from snps_filtered
 	tuple val(base), file(indels) from indels_filtered
-	
+
 	output:
 	tuple val(base), file("${base}.vcf.gz") into filtered_vcf
-	
+
 	script:
 	"""
 	gatk MergeVcfs \
@@ -389,255 +389,3 @@ process Merge_VCFs {
                                  ANNOTATION
 ================================================================================
 */
-
-/*
- Annotation Strategy: 
- 	Run VCF through snpEff, then run through VEP with Plugins for rich 
-  	annotation and GAVIN compatability (requires snpEff, CADD, ExAC ann)
-*/
-
-
-process snpEff {
-
-	publishDir path: "$params.outDir/analysis/snpEff", mode: "copy"
-	
-	input:
-	tuple val(base), file(vcf) from vcfsnpEff
-	val(cache) from params.snpeff_cache
-	val(database) from params.snpeff_db
-	
-	output:
-	set file("${base}_snpEff.genes.txt"), file("${base}_snpEff.html"), file("${base}_snpEff.csv") into snpeffReport
-        tuple val(base), file("${base}_snpEff.ann.vcf") into snpeffVCF
-
-	script:
-	cache = "-dataDir ${cache}"
-	"""
-	snpEff -Xmx8g \
-        ${database} \
-        -csvStats ${base}_snpEff.csv \
-        -nodownload \
-        ${cache} \
-        -canon \
-        -v \
-        ${vcf} \
-        > ${base}_snpEff.ann.vcf
-	
-    	mv snpEff_summary.html ${base}_snpEff.html
-	"""
-}
-
-
-snpeffReport = snpeffReport.dump(tag:'snpEff')
-
-
-process CompressVCFsnpEff {
-
-    	publishDir path: "$params.outDir/analysis/snpEff", mode: "copy"
-
-    	input:
-   	 tuple val(base), file(vcf) from snpeffVCF
-
-   	 output:
-   	 tuple val(base), file("*.vcf.gz"), file("*.vcf.gz.tbi") into compressVCFsnpEffOut
-
-   	 script:
-	 """
-	 bgzip < ${vcf} > ${vcf}.gz
-	 tabix ${vcf}.gz
-	 """
-}
-
-
-process VEPsnpEff {
-
-    	publishDir path: "$params.outDir/analysis/snpEff", mode: "copy"
-
-    	input:
-        tuple val(base), file(vcf), file(vcf_tbi) from compressVCFsnpEffOut
-        val(dataDir) from params.vep_cache
-        val(vepversion) from params.vep_version
-	file(fasta) from params.fasta
-	tuple file(cadd_snv), file(cadd_snv_tbi) from Channel.value([params.cadd_wg_snvs, params.cadd_wg_snvs_tbi])
-	tuple file(cadd_indels), file(cadd_indels_tbi) from Channel.value([params.cadd_indels, params.cadd_indels_tbi])
-	tuple file(exac), file(exac_tbi) from Channel.value([params.exac, params.exac_tbi])
-	file(lof) from params.lof
-
-	
-    	output:
-        tuple val(base), file("${base}_VEP.ann.vcf") into vepVCF
-        file("${base}_VEP.summary.html") into vepReport
-
-
-    	script:
-	ExAC = "--plugin ExAC,ExAC.r0.3.1.sites.vep.vcf.gz"
-	CADD = "--plugin CADD,whole_genome_SNVs.tsv.gz,InDels.tsv.gz"
-	LOF = "--plugin LoFtool,LoFtool_scores.txt"
-	genesplicer = "--plugin GeneSplicer,/opt/conda/envs/Germline_VC/bin/genesplicer,/opt/conda/envs/Germline_VC/share/genesplicer-1.0-1/human,context=200,tmpdir=\$PWD/${base}"
-    	"""
-    	vep \
-    	-i ${vcf} \
-    	-o ${base}_VEP.ann.vcf \
-    	--assembly GRCh37 \
-    	--species homo_sapiens \
-	${ExAC} \
-	${CADD} \
-	${LOF} \
-	${genesplicer} \
-	--offline \
-    	--cache \
-	--fasta $fasta \
-    	--cache_version ${vepversion} \
-    	--dir_cache ${dataDir} \
-    	--everything \
-    	--filter_common \
-    	--fork 4 \
-    	--format vcf \
-    	--per_gene \
-    	--stats_file ${base}_VEP.summary.html \
-    	--total_length \
-    	--vcf
-	
-	rm -rf ${base}
-    	"""
-}
-
-
-vepReport = vepReport.dump(tag:'VEP')
-
-
-process CompressVCFvep {
-
-    	publishDir path: "$params.outDir/analysis/combined_annot", mode: "copy"
-
-    	input:
-   	tuple val(base), file(vcf) from vepVCF
-
-    	output:
-    	tuple val(base), file("*.vcf.gz"), file("*.vcf.gz.tbi") into compressVCFOutVEP
-
-    	script:
-    	"""
-    	bgzip < ${vcf} > ${vcf}.gz
-    	tabix ${vcf}.gz
-    	"""
-}
-
-
-
-/*
-================================================================================
-				Quality Control
-================================================================================
-*/
-
-process BamQC {
-
-    	publishDir path: "$params.outDir/analysis/bamQC", mode: "copy"
-
-    	input:
-    	tuple val(base), file(bam) from bam_recalibrated_qc
-    	file(targetBED) from params.bed
-
-    	output:
-    	file("${bam.baseName}") into bamQCReport
-
-    	script:
-    	use_bed = "-gff ${targetBED}"
-    	"""
-    	qualimap --java-mem-size=8G \
-        bamqc \
-        -bam ${bam} \
-        --paint-chromosome-limits \
-        --genome-gc-distr HUMAN \
-        $use_bed \
-        -nt 8 \
-        -skip-duplicated \
-        --skip-dup-mode 0 \
-        -outdir ${bam.baseName} \
-        -outformat HTML
-    	"""
-}
-
-
-bamQCReport = bamQCReport.dump(tag:'BamQC')
-
-
-process BcftoolsStats {
-
-    	publishDir path: "$params.outDir/analysis/quality", mode: "copy"
-
-    	input:
-    	tuple val(base), file(vcf) from bcfstats
-
-    	output:
-    	file ("*.bcf.tools.stats.out") into bcftoolsReport
-
-    	script:
-    	"""
-    	bcftools stats ${vcf} > ${base}.bcf.tools.stats.out
-    	"""
-}
-
-
-bcftoolsReport = bcftoolsReport.dump(tag:'BCFTools')
-
-
-process Vcftools {
-
-    	publishDir path: "$params.outDir/analysis/quality", mode: "copy"
-
-    	input:
-    	tuple val(base), file(vcf) from vcfstats
-
-    	output:
-    	file ("${base}.*") into vcftoolsReport
-
-    	script:
-    	"""
-    	vcftools \
-    	--gzvcf ${vcf} \
-    	--TsTv-by-count \
-    	--out ${base}.vcf
-    
-    	vcftools \
-    	--gzvcf ${vcf} \
-    	--TsTv-by-qual \
-    	--out ${base}.vcf
-    
-    	vcftools \
-    	--gzvcf ${vcf} \
-    	--FILTER-summary \
-    	--out ${base}.vcf
-    	"""
-}
-
-
-vcftoolsReport = vcftoolsReport.dump(tag:'VCFTools')
-
-
-
-process MultiQC {
-
-    	publishDir path: "$params.outDir/analysis/MultiQC", mode: "copy"
-
-    	input:
-        file ('bamQC/*') from bamQCReport.collect().ifEmpty([])
-        file ('BCFTools/*') from bcftoolsReport.collect().ifEmpty([])
-        file ('MarkDuplicates/*') from duplicates_marked_report.collect().ifEmpty([])
-        file ('DuplicatesMarked/*.recal.table') from baseRecalibratorReport.collect().ifEmpty([])
-        file ('SamToolsStats/*') from samtoolsStatsReport.collect().ifEmpty([])
-        file ('snpEff/*') from snpeffReport.collect().ifEmpty([])
-        file ('VCFTools/*') from vcftoolsReport.collect().ifEmpty([])
-
-    	output:
-    	file ("*multiqc_report.html") into ch_multiqc_report
-    	file ("*_data")
-
-    	script:
-    	rtitle = "--title Galway_Genomics"
-	rfilename = "--filename Galway_Genomics_multiqc_report"
-    	"""
-    	multiqc -f ${rtitle} ${rfilename} .
-    	"""
-}
