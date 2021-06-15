@@ -389,3 +389,32 @@ process Merge_VCFs {
                                  ANNOTATION
 ================================================================================
 */
+
+
+process snpEff{
+
+    publishDir path: "$params.outDir/analysis/snpEff", mode: "copy"
+
+    input:
+    tuple val(base), file(vcf) from vcfsnpEff
+    val(cache) from params.snpeff_cache
+	  val(database) from params.snpeff_db
+
+    output:
+    file("*") into out
+
+    script:
+    cache = "-dataDir ${cache}"
+    """
+    snpEff -Xmx8G \\
+        ${database} \\
+        -dataDir ${cache} \\
+        -nostats \\
+        -noLog \\
+        -lof \\
+        -canon \\
+        -ud 0 \\
+        $vcf > ${base}.snpeff.vcf
+    """
+
+}
