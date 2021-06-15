@@ -401,14 +401,14 @@ process snpEff{
 	  val(database) from params.snpeff_db
 
     output:
-    file("*") into out
+    tuple val(base), file("${base}.snpeff.vcf") into out
 
     script:
     cache = "-dataDir ${cache}"
     """
     snpEff -Xmx8G \\
         ${database} \\
-        -dataDir ${cache} \\
+        ${cache} \\
         -nostats \\
         -noLog \\
         -lof \\
