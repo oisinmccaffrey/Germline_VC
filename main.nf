@@ -446,6 +446,17 @@ process CADD {
     publishDir path: "$params.outDir/analysis/CADD", mode:'copy'
 
     input:
-    tuple val(base), file
+    tuple val(base), file(vcf) from exac_out
 
+    output:
+    tuple val(base), file("${base}.snpeff.exac.cadd.vcf") into cadd_out
+
+    script:
+    """
+    java -Xmx4g -jar ${projectDir}/bin/CmdLineAnnotator-1.21.1.jar \\
+    -a cadd \\
+    -s /data/VEP/GRCh37/Plugin_files/whole_genome_SNVs.tsv.gz \\
+    -i $vcf \\
+    -o ${base}.snpeff.exac.cadd.vcf
+    """
 }
