@@ -470,7 +470,7 @@ process GAVIN_toCADD {
     tuple val(base), file(vcf) from cadd_out
 
     output:
-    tuple val(base), file("${base}.toCadd.tsv") into cadd_out
+    tuple val(base), file("${base}.toCadd.tsv") into tocadd_out
 
     script:
     """
