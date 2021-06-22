@@ -118,7 +118,7 @@ process MapReads{
 	tuple val(base), file("${base}.bam") into bamMappedBamQC
 
         script:
-        readGroup = "@RG\\tID:HT52VDMXX\\tPU:HT52VDMXX:1\\tSM:METIN\\tLB:METIN\\tPL:illumina"
+        readGroup = "@RG\\tID:80C1RABXX110103\\tPU:80C1RABXX110103:1\\tSM:SRR\\tLB:SRR\\tPL:illumina"
         """
         bwa mem -K 100000000 -R \"${readGroup}\" -t 8 -M $fasta $reads | \
         samtools sort --threads 8 - > ${base}.bam
