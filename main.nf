@@ -474,7 +474,7 @@ process GAVIN_toCADD {
 
     script:
     """
-    java -Xmx8G -jar ${projectDir}/bin/GAVIN-Plus-1.3beta.jar \\
+    java -Xmx8G -jar ${projectDir}/bin/GAVIN-Plus-1.0.jar \\
     -i $vcf \\
     -o ${base}.gavin_firstpass.vcf \\
     -m CREATEFILEFORCADD \\
