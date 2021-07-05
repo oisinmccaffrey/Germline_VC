@@ -1,5 +1,7 @@
 ## Shell into container to use snpEff
 
+## snpEFF, ExAC, and CADD are now incorporated into the nextflow script.
+
 ## snpEff on Fitlered VCF file
 snpEff -Xmx8G GRCh37.75 -dataDir /data/snpEff/ -nostats -noLog -lof -canon -ud 0 METIN_YUSA_EZELSOY_R.vcf.gz > METIN.snpeff.vcf
 
@@ -9,15 +11,26 @@ java -Xmx4g -jar CmdLineAnnotator-1.21.1.jar -a exac -s /data/VEP/GRCh37/Plugin_
 ## Add CADD annotations
 java -Xmx4g -jar CmdLineAnnotator-1.21.1.jar -a cadd -s /data/VEP/GRCh37/Plugin_files/whole_genome_SNVs.tsv.gz -i METIN.snpeff.exac.vcf -o METIN.snpeff.exac.cadd.vcf
 
-## GAVIN Pre-processing
-java -Xmx8G -jar GAVIN-Plus-1.0.jar -i METIN.snpeff.exac.cadd.vcf -o METIN.gavin_firstpass.vcf -m CREATEFILEFORCADD -a METIN.toCadd.tsv -c clinvar.patho.fix.11oct2016.vcf.gz -d CGD_11oct2016.txt.gz -f FDR_allGenes_r1.0.tsv -g GAVIN_calibrations_r0.3.tsv
 
-## Upload METIN.toCadd.tsv to CADD/scores in browser.
+
+#####
+
+
+
+Therefore after running the nextflow script
+## https://github.com/oisinmccaffrey/Germline_VC/blob/master/main.nf
+
+Proceed to GAVIN using the following command-line operations:
+
+## GAVIN Pre-processing
+java -Xmx8G -jar GAVIN-Plus-1.0.jar -i SRR099957_2.snpeff.exac.cadd.vcf -o SRR.gavin_firstpass.vcf -m CREATEFILEFORCADD -a SRR.toCadd.tsv -c clinvar.patho.fix.11oct2016.vcf.gz -d CGD_11oct2016.txt.gz -f FDR_allGenes_r1.0.tsv -g GAVIN_calibrations_r0.3.tsv
+
+## Upload SRR.toCadd.tsv to CADD/scores in browser.
 
 ## GAVIN
-java -Xmx8G -jar GAVIN-Plus-1.0.jar -i METIN.snpeff.exac.cadd.vcf -o METIN.gavin_secondpass.vcf -m ANALYSIS -a GRCh37-v1.6_20906826fcb21a4da37688a448efa174.tsv -c clinvar.patho.fix.11oct2016.vcf.gz -d CGD_11oct2016.txt.gz -f FDR_allGenes_r1.0.tsv -g GAVIN_calibrations_r0.3.tsv
+java -Xmx8G -jar GAVIN-Plus-1.0.jar -i SRR099957_2.snpeff.exac.cadd.vcf -o SRR.gavin_secondpass.vcf -m ANALYSIS -a GRCh37-v1.6_ff8fd07ec70a7ee936eefda97edfa488.tsv -c clinvar.patho.fix.11oct2016.vcf.gz -d CGD_11oct2016.txt.gz -f FDR_allGenes_r1.0.tsv -g GAVIN_calibrations_r0.3.tsv
+
 
 ## Use GAVIN_1.3_Beta and genome report generator tool!
-## Make sure to use bcftools norm --multiallelic to split mutliallelic sites (GAVIN does not handle these well).
 
 .
