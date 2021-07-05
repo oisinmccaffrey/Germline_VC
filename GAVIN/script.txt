@@ -3,13 +3,13 @@
 ## snpEFF, ExAC, and CADD are now incorporated into the nextflow script.
 
 ## snpEff on Fitlered VCF file
-snpEff -Xmx8G GRCh37.75 -dataDir /data/snpEff/ -nostats -noLog -lof -canon -ud 0 METIN_YUSA_EZELSOY_R.vcf.gz > METIN.snpeff.vcf
+snpEff -Xmx8G GRCh37.75 -dataDir /data/snpEff/ -nostats -noLog -lof -canon -ud 0 SRR099957_2.fastq.gz > SRR.snpeff.vcf
 
 ## Add ExAC annotations
-java -Xmx4g -jar CmdLineAnnotator-1.21.1.jar -a exac -s /data/VEP/GRCh37/Plugin_files/ExAC.r0.3.1.sites.vep.vcf.gz -i METIN.snpeff.vcf -o METIN.snpeff.exac.vcf
+java -Xmx4g -jar CmdLineAnnotator-1.21.1.jar -a exac -s /data/VEP/GRCh37/Plugin_files/ExAC.r0.3.1.sites.vep.vcf.gz -i SRR.snpeff.vcf -o SRR.snpeff.exac.vcf
 
 ## Add CADD annotations
-java -Xmx4g -jar CmdLineAnnotator-1.21.1.jar -a cadd -s /data/VEP/GRCh37/Plugin_files/whole_genome_SNVs.tsv.gz -i METIN.snpeff.exac.vcf -o METIN.snpeff.exac.cadd.vcf
+java -Xmx4g -jar CmdLineAnnotator-1.21.1.jar -a cadd -s /data/VEP/GRCh37/Plugin_files/whole_genome_SNVs.tsv.gz -i SRR.snpeff.exac.vcf -o SRR.snpeff.exac.cadd.vcf
 
 
 
